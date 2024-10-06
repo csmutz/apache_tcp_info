@@ -1,14 +1,24 @@
-# apache_tcp_info
-adding module that retrieves connection tcp_info from kernel, makes available for logging and environment variables for scripts
+# mod_tcpfingerprint
+Create a module that retrieves connection tcp fingerprinting from kernel, makes available for logging and environment variables for scripts.
+
+In the future, protentially have database for known fingerprints, especially devices like IoT devcies/SOHO routers/etc commonly used for proxies in residential proxies.
+
+## Attributes
+
+List of attributes we will collect.
 
 ## Design
-Biggest issue is how to retrieve TCP_INFO in portable way. TCP_INFO differs between platforms and linux has numerous additions across kernel versions. Use getsockopt or netlink on linux?
- - getsockopt is best because its synchronous
- - We can get full syn packet using TCP_SAVE_SYN
 
-Probably getsocktopt because it's more portable and synchronous.
+mod_tcpfingerprint will collect information on every new connection at the start of the connection.
 
-Do we collect TCP_INFO at start or per-request?
+We will use two different mechanisms to get data from kernel
+ - TCP_INFO to get RTT and things like path_mtu
+ - syn packet using TCP_SAVED_SYN
+   - This will require enabling TCP_SAVE_SYN on listen socket
+
+The module will add env vars for every request
+
+The module will register a new function for custom logging.
 
 ### Notes
 
@@ -23,6 +33,8 @@ TCP_SAVE_SYN info: https://lwn.net/Articles/645128/
 TCP_INFO: https://linuxgazette.net/136/pfeiffer.html
 
 ### References:
+
 https://blog.mygraphql.com/en/notes/low-tec/network/tcp-inspect/#rationale---how-ss-work
+
 https://github.com/apache/trafficserver/blob/master/plugins/tcpinfo/tcpinfo.cc
 
