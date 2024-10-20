@@ -40,6 +40,11 @@ See modules/examples/mod_example_hooks.c for best documentation on callbacks.
 
 Is there a better resource?
 
+Callbacks to use:
+ - ap_hook_process_connection: Collect info for connection
+ - ap_hook_fixups for making env variables available
+ - ?? to register custom logging function 
+
 #### Changes to Apache
 
 To get access to saved SYN, core apache will need to be modified to set SOCKOPT on listen socket.
