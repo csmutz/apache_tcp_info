@@ -22,6 +22,8 @@ The module will register a new function for custom logging.
 
 ### Notes
 
+#### TCP attributes
+
 See ap_register_log_handler to add new custom log handler
 
 See ap_get_conn_socket to get current socket 
@@ -32,13 +34,19 @@ TCP_SAVE_SYN info: https://lwn.net/Articles/645128/
 
 TCP_INFO: https://linuxgazette.net/136/pfeiffer.html
 
+#### Module Development
+
+See modules/examples/mod_example_hooks.c for best documentation on callbacks.
+
+Is there a better resource?
 
 #### Changes to Apache
 
 To get access to saved SYN, core apache will need to be modified to set SOCKOPT on listen socket.
  - See server/listen.c
  - Use ListenBackLog as example of configuration directive
- - Use defined(SO_REUSEPORT) as example to ensure linux version 
+ - Use defined(SO_REUSEPORT) as example to ensure linux version
+ - Is there any way to get acces to the listen socket (the accept socket is easy) from in the module? Even if we could, isn't global setting best anyway? 
 
 
 ### References:
