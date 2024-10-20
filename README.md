@@ -45,7 +45,7 @@ Is there a better resource?
 To get access to saved SYN, core apache will need to be modified to set SOCKOPT on listen socket.
  - See server/listen.c
  - Use ListenBackLog as example of configuration directive
- - Use defined(SO_REUSEPORT) as example to ensure linux version
+ - Use defined(SO_REUSEPORT) as example to ensure TCP_SAVE_SYN functionality
  - Is there any way to get acces to the listen socket (the accept socket is easy) from in the module? Even if we could, isn't global setting best anyway? 
 
 
