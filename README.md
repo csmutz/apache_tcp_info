@@ -32,6 +32,15 @@ TCP_SAVE_SYN info: https://lwn.net/Articles/645128/
 
 TCP_INFO: https://linuxgazette.net/136/pfeiffer.html
 
+
+#### Changes to Apache
+
+To get access to saved SYN, core apache will need to be modified to set SOCKOPT on listen socket.
+ - See server/listen.c
+ - Use ListenBackLog as example of configuration directive
+ - Use defined(SO_REUSEPORT) as example to ensure linux version 
+
+
 ### References:
 
 https://blog.mygraphql.com/en/notes/low-tec/network/tcp-inspect/#rationale---how-ss-work
