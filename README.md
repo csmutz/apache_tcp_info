@@ -38,6 +38,8 @@ TCP_INFO: https://linuxgazette.net/136/pfeiffer.html
 
 See modules/examples/mod_example_hooks.c for best documentation on callbacks. https://github.com/apache/httpd/blob/trunk/modules/examples/mod_example_hooks.c
 
+https://httpd.apache.org/docs/2.4/developer/modules.html
+
 Is there a better resource?
 
 Callbacks to use:
