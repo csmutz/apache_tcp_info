@@ -36,7 +36,7 @@ TCP_INFO: https://linuxgazette.net/136/pfeiffer.html
 
 #### Module Development
 
-See modules/examples/mod_example_hooks.c for best documentation on callbacks.
+See modules/examples/mod_example_hooks.c for best documentation on callbacks. https://github.com/apache/httpd/blob/trunk/modules/examples/mod_example_hooks.c
 
 Is there a better resource?
 
