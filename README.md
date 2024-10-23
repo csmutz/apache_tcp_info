@@ -36,6 +36,7 @@ TCP_INFO: https://linuxgazette.net/136/pfeiffer.html
 
 #### Module Development
 
+###### Module Basics ######
 See modules/examples/mod_example_hooks.c for best documentation on callbacks. https://github.com/apache/httpd/blob/trunk/modules/examples/mod_example_hooks.c
 
 https://httpd.apache.org/docs/2.4/developer/modules.html
@@ -48,6 +49,10 @@ Callbacks to use:
  - ?? to register custom logging function
 
 Example that sets environment variables: https://www.tirasa.net/en/blog/developing-custom-apache2-module
+
+##### Module data storage #####
+
+See myConnConfigSet() from mod_ssl, ap_set_module_config function
 
 #### Changes to Apache
 
