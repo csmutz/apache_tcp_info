@@ -54,6 +54,8 @@ Example that sets environment variables: https://www.tirasa.net/en/blog/developi
 
 See myConnConfigSet() from mod_ssl, ap_set_module_config function
 
+See modules/metadata/mod_remoteip.c as example of storage
+
 #### Changes to Apache
 
 To get access to saved SYN, core apache will need to be modified to set SOCKOPT on listen socket.
