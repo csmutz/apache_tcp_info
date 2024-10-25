@@ -26,7 +26,7 @@ The module will register a new function for custom logging.
 
 See ap_register_log_handler to add new custom log handler
 
-See ap_get_conn_socket to get current socket 
+See apr_os_sock_get and ap_get_conn_socket to get current socket 
 
 https://stackoverflow.com/questions/53702714/get-the-socket-from-an-apache-module
 
