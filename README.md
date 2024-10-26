@@ -10,9 +10,9 @@ List of attributes we will collect.
 
 ### Tasks
 
- - ~~~basic module skeleton~~~
- - ~~~Collect TCP_INFO~~~
- - ~~~Expose TCP_INFO Data~~~
+ - ~~basic module skeleton~~
+ - ~~Collect TCP_INFO~~
+ - ~~Expose TCP_INFO Data~~
  - retrival functions for variables (work for both logging callback and adding vars to env)
    - Callback function for logging
  - Collect SAVED_SYN
