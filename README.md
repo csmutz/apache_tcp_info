@@ -46,9 +46,11 @@ Is there a better resource?
 Callbacks to use:
  - ap_hook_process_connection: Collect info for connection
  - ap_hook_fixups for making env variables available
- - ?? to register custom logging function
+ - app_hook_pre_config? to register custom logging function
 
 Example that sets environment variables: https://www.tirasa.net/en/blog/developing-custom-apache2-module
+
+getsockopt fails on non-blocking socket, see apr_socket_opt_set
 
 ##### Module data storage #####
 
