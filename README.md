@@ -64,6 +64,17 @@ To get access to saved SYN, core apache will need to be modified to set SOCKOPT 
  - Use defined(SO_REUSEPORT) as example to ensure TCP_SAVE_SYN functionality
  - Is there any way to get acces to the listen socket (the accept socket is easy) from in the module? Even if we could, isn't global setting best anyway? 
 
+#### Compile/Install
+
+Compile:
+```
+apxs2 -c mod_tcpfingerprint.c
+```
+
+Install and enable:
+```
+sudo apxs2 -iac mod_tcpfingerprint.c
+```
 
 ### References:
 
