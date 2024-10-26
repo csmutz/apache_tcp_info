@@ -43,7 +43,8 @@
 #include "ap_config.h"
 #include "http_connection.h"
 #include "http_log.h"
-
+#include "apr_strings.h"
+#include "http_request.h"
 
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -124,11 +125,43 @@ static int fingerprint_pre_connection(conn_rec *c, void *csd)
     return OK;
 }
 
+static int fingerprint_fixups(request_rec* r)
+{
+    conn_rec *c = r->connection;
+    fingerprint_data_t *data = NULL;
+
+    char *name= NULL;
+    char *value = NULL;
+
+    
+    //always use master connection?
+    if (c->master)
+    {
+        c = c->master;
+    }
+    
+    data = (fingerprint_data_t *) ap_get_module_config(c->conn_config, &tcpfingerprint_module);
+    
+    if (data)
+    {
+        if (data->tcp_info)
+        {
+            name = apr_psprintf(r->pool, "%s", "TCP_RTT");
+            value = apr_psprintf(r->pool, "%lu", (unsigned long) data->tcp_info->tcpi_rtt);
+            apr_table_setn(r->subprocess_env, name, value);
+        }
+    }
+
+    return OK;
+
+}
+
 
 static void tcpfingerprint_register_hooks(apr_pool_t *p)
 {
     //ap_hook_handler(tcpfingerprint_handler, NULL, NULL, APR_HOOK_MIDDLE);
     ap_hook_pre_connection(fingerprint_pre_connection, NULL, NULL, APR_HOOK_MIDDLE);
+    ap_hook_fixups(fingerprint_fixups, NULL, NULL, APR_HOOK_REALLY_FIRST);
 }
 
 /* Dispatch list for API hooks */
