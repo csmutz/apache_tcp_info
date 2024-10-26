@@ -7,6 +7,21 @@ In the future, protentially have database for known fingerprints, especially dev
 
 List of attributes we will collect.
 
+TCP_INFO
+ - TCP_RTT
+
+SAVED_SYN
+ - IP TTL
+ - Window Size
+ - Extension IDs
+ - Extension values
+   - MSS
+   - Window Scale
+ - DF?
+ - ECN?
+
+Timestamp
+ - For Hello Delay
 
 ### Tasks
 
