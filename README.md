@@ -16,7 +16,7 @@ List of attributes we will collect.
  - retrival functions for variables (work for both logging callback and adding vars to env)
    - Callback function for logging
  - Collect SAVED_SYN
-   - Patch for apache to set SAVE_SYN on listen socket(s(
+   - Patch for apache to set SAVE_SYN on listen socket(s)
  - Expose SAVED_SYN -- test standalone first
  - Configurations (like STDENVVARS)
  - 
