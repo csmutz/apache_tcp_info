@@ -7,6 +7,20 @@ In the future, protentially have database for known fingerprints, especially dev
 
 List of attributes we will collect.
 
+
+### Tasks
+
+ - ~~~basic module skeleton~~~
+ - ~~~Collect TCP_INFO~~~
+ - ~~~Expose TCP_INFO Data~~~
+ - retrival functions for variables (work for both logging callback and adding vars to env)
+   - Callback function for logging
+ - Collect SAVED_SYN
+   - Patch for apache to set SAVE_SYN on listen socket(s(
+ - Expose SAVED_SYN -- test standalone first
+ - Configurations (like STDENVVARS)
+ - 
+
 ## Design
 
 mod_tcpfingerprint will collect information on every new connection at the start of the connection.
