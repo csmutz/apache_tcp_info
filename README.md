@@ -93,8 +93,11 @@ Structures to understand:
  - sk_buff
  - tcphdr
 
-Example code: https://www.linuxquestions.org/questions/programming-9/access-tcp-header-seq-757115/ (there has to be better)
+Example code: 
 
+https://www.linuxquestions.org/questions/programming-9/access-tcp-header-seq-757115/ (there has to be better)
+
+https://github.com/baiwei0427/coding-examples/blob/master/ipip/ipip_tcp.c
 
 #### Changes to Apache
 
