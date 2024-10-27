@@ -30,9 +30,9 @@ Timestamp
  - ~~Expose TCP_INFO Data~~
  - retrival functions for variables (work for both logging callback and adding vars to env)
    - Callback function for logging
- - Collect SAVED_SYN
-   - Patch for apache to set SAVE_SYN on listen socket(s)
- - Expose SAVED_SYN -- test standalone first
+ - Collect TCP_SAVED_SYN
+   - Patch for apache to set TCP_SAVE_SYN on listen socket(s)
+ - Expose TCP_SAVED_SYN -- test standalone first
  - Configurations (like STDENVVARS)
  - 
 
