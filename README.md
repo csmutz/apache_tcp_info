@@ -87,6 +87,12 @@ See myConnConfigSet() from mod_ssl, ap_set_module_config function
 
 See modules/metadata/mod_remoteip.c as example of storage
 
+#### SYN parsing
+
+Structures to understand:
+ - sk_buff
+ - tcphdr
+
 #### Changes to Apache
 
 To get access to saved SYN, core apache will need to be modified to set SOCKOPT on listen socket.
