@@ -87,11 +87,14 @@ See myConnConfigSet() from mod_ssl, ap_set_module_config function
 
 See modules/metadata/mod_remoteip.c as example of storage
 
-#### SYN parsing
+#### SAVED_SYN parsing
 
 Structures to understand:
  - sk_buff
  - tcphdr
+
+Example code: https://www.linuxquestions.org/questions/programming-9/access-tcp-header-seq-757115/ (there has to be better)
+
 
 #### Changes to Apache
 
