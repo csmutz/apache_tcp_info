@@ -105,7 +105,10 @@ To get access to saved SYN, core apache will need to be modified to set SOCKOPT 
  - See server/listen.c
  - Use ListenBackLog as example of configuration directive
  - Use defined(SO_REUSEPORT) as example to ensure TCP_SAVE_SYN functionality
- - Is there any way to get acces to the listen socket (the accept socket is easy) from in the module? Even if we could, isn't global setting best anyway? 
+ - Is there any way to get acces to the listen socket (the accept socket is easy) from in the module? Even if we could, isn't global setting best anyway?
+   - Yes, it looks like there is. See (global variable?) ‎ap_listeners‎. See remoteip as example. https://github.com/apache/httpd/blob/trunk/modules/metadata/mod_remoteip.c#L752
+   - What callback is right? 
+ 
 
 #### Compile/Install
 
