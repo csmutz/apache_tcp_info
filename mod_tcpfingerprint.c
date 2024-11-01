@@ -45,6 +45,8 @@
 #include "http_log.h"
 #include "apr_strings.h"
 #include "http_request.h"
+#include "ap_listen.h"
+#include "apr_lib.h"
 
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -56,8 +58,43 @@ extern module AP_MODULE_DECLARE_DATA tcpfingerprint_module;
 
 typedef struct {
     const struct tcp_info *tcp_info;
+    const char *syn_packet;
 } fingerprint_data_t;
 
+
+
+static int fingerprint_post_config(apr_pool_t *pconf, apr_pool_t *plog, apr_pool_t *ptemp, server_rec *s)
+{
+    //set save_syn on all listeners
+    ap_listen_rec *lr;
+    int listen_sd;
+    int res;
+    int save_syn = 1;
+    apr_status_t stat = 0;
+
+    for(lr = ap_listeners; lr; lr = lr->next) 
+    {
+        //if (lr->bind_addr)
+        //{
+        //    ap_log_error(APLOG_MARK, APLOG_ERR, 0, s, "listen port: %i", (int) lr->bind_addr->port);
+        //}
+        apr_os_sock_get(&listen_sd, lr->sd);
+        res = setsockopt(listen_sd, IPPROTO_TCP, TCP_SAVE_SYN, &save_syn, sizeof(save_syn));
+        if (res < 0)
+        {
+            stat = apr_get_netos_error();
+            ap_log_error(APLOG_MARK, APLOG_ERR, stat, s, "Failed to set TCP_SAVE_SYN on listener for port: %i", (int) lr->bind_addr->port);
+        } else
+        {
+
+            ap_log_error(APLOG_MARK, APLOG_ERR, 0, s, "set TCP_SAVE_SYN on listener for port: %i", (int) lr->bind_addr->port);
+        }   
+    }
+
+    //set callback for customlog
+    return OK; 
+
+}
 
 
 static int fingerprint_pre_connection(conn_rec *c, void *csd)
@@ -71,6 +108,8 @@ static int fingerprint_pre_connection(conn_rec *c, void *csd)
     apr_status_t stat = 0;
     int sd = 0;
     int nonblock = 0;
+    char *syn_packet;
+    int syn_length = 96;
     
     apr_os_sock_get(&sd, csd);
 
@@ -82,6 +121,8 @@ static int fingerprint_pre_connection(conn_rec *c, void *csd)
 
         ti_length = sizeof(*ti);
         ti = apr_pcalloc(c->pool, ti_length);
+
+        syn_packet = apr_pcalloc(c->pool, syn_length);
                 
         stat = apr_socket_opt_get(csd, APR_SO_NONBLOCK, &nonblock);
         if (stat != APR_SUCCESS)
@@ -111,6 +152,20 @@ static int fingerprint_pre_connection(conn_rec *c, void *csd)
             data->tcp_info = ti;
             ap_log_cerror(APLOG_MARK, APLOG_ERR, 0, c, "TCP_INFO stored for connection");
         }
+
+        res = getsockopt(sd, IPPROTO_TCP, TCP_SAVED_SYN, syn_packet, (socklen_t *)&syn_length);
+        if (res < 0)
+        {
+            stat = apr_get_netos_error();
+            ap_log_cerror(APLOG_MARK, APLOG_ERR, stat, c, "error getting TCP_SAVED_SYN");
+
+        } else
+        {
+            data->syn_packet = syn_packet;
+            ap_log_cerror(APLOG_MARK, APLOG_ERR, 0, c, "TCP_SAVED_SYN stored for connection");
+        }
+
+
 
         if (nonblock)
         {
@@ -150,6 +205,12 @@ static int fingerprint_fixups(request_rec* r)
             value = apr_psprintf(r->pool, "%lu", (unsigned long) data->tcp_info->tcpi_rtt);
             apr_table_setn(r->subprocess_env, name, value);
         }
+        if (data->syn_packet)
+        {
+            name = apr_psprintf(r->pool, "%s", "IP_VERSION");
+            value = apr_psprintf(r->pool, "%u", (((unsigned char) data->syn_packet[0]) & 0xF0) >> 4);
+            apr_table_setn(r->subprocess_env, name, value);
+        }
     }
 
     return OK;
@@ -160,6 +221,7 @@ static int fingerprint_fixups(request_rec* r)
 static void tcpfingerprint_register_hooks(apr_pool_t *p)
 {
     //ap_hook_handler(tcpfingerprint_handler, NULL, NULL, APR_HOOK_MIDDLE);
+    ap_hook_post_config(fingerprint_post_config, NULL, NULL, APR_HOOK_MIDDLE);
     ap_hook_pre_connection(fingerprint_pre_connection, NULL, NULL, APR_HOOK_MIDDLE);
     ap_hook_fixups(fingerprint_fixups, NULL, NULL, APR_HOOK_REALLY_FIRST);
 }
