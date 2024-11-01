@@ -31,9 +31,10 @@ Timestamp
  - retrival functions for variables (work for both logging callback and adding vars to env)
    - Callback function for logging
  - Collect TCP_SAVED_SYN
-   - Patch for apache to set TCP_SAVE_SYN on listen socket(s)
- - Expose TCP_SAVED_SYN -- test standalone first
- - Configurations (like STDENVVARS)
+   - ~~Patch for apache to set TCP_SAVE_SYN on listen socket(s)~~ -- Not necessary, set in module startup
+ - Expose TCP_SAVED_SYN -- exposing IP version currently
+   - Parse syn_packet 
+ - Configurations (like STDENVVARS) -- are there any necessary?
  - 
 
 ## Design
@@ -108,8 +109,8 @@ To get access to saved SYN, core apache will need to be modified to set SOCKOPT 
  - Is there any way to get acces to the listen socket (the accept socket is easy) from in the module? Even if we could, isn't global setting best anyway?
    - Yes, it looks like there is. See (global variable?) ‎ap_listeners‎. See remoteip as example. https://github.com/apache/httpd/blob/trunk/modules/metadata/mod_remoteip.c#L752
    - What callback? maybe ap_hook_pre_mpm or ap_hook_post_config
-     
- 
+
+ This worked (setting SAVE_SYN in ap_hook_post_config) -- no patch to apache should be necessary.
 
 #### Compile/Install
 
