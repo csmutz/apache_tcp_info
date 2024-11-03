@@ -50,16 +50,94 @@
 
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <netinet/ip.h>
+#include <netinet/ip6.h>
 #include <netinet/tcp.h>
 
 
 extern module AP_MODULE_DECLARE_DATA tcpfingerprint_module;
 
 
-typedef struct {
+typedef struct
+{
+    const char *pkt_data;
+    int pkt_len;
+    const struct iphdr *ip;
+    const struct ip6_hdr *ip6;
+    const struct tcphdr *tcp;
+    int tcp_offset;
+    int ip_version;
+} syn_packet_t;
+
+typedef struct
+{
     const struct tcp_info *tcp_info;
-    const char *syn_packet;
+    syn_packet_t *saved_syn;
+    //TODO: add timestamp to allow calcuation of TLS_HELLO_DELAY
 } fingerprint_data_t;
+
+
+
+static int parse_pkt(syn_packet_t *syn)
+{
+    int ip6_offset = sizeof(struct ip6_hdr);
+    struct ip6_ext *ext;
+    
+    if (syn->ip_version > 0 || syn->ip_version == -1)
+    {
+        return syn->ip_version;
+    }
+    syn->ip_version = (((unsigned char) syn->pkt_data[0]) & 0xF0) >> 4;
+    
+    
+    if (syn->ip_version == 4)
+    {
+        syn->ip = (struct iphdr *)syn->pkt_data;
+        syn->tcp_offset = syn->ip->ihl * 4;
+    }
+    
+    if (syn->ip_version == 6)
+    {
+        syn->ip6 = (struct ip6_hdr *)syn->pkt_data;
+        if (syn->ip6->ip6_nxt == IPPROTO_TCP)
+        {
+            syn->tcp_offset = ip6_offset;
+        } else
+        {
+            ext = (struct ip6_ext *)(&(syn->pkt_data[ip6_offset]));
+            while (ip6_offset < syn->pkt_len - 8)
+            {
+                ip6_offset += (ext->ip6e_len + 1) * 8;
+                if (ext->ip6e_nxt == IPPROTO_TCP)
+                {
+                    syn->tcp_offset = ip6_offset;
+                } else
+                {
+                    ext = (struct ip6_ext *)(&(syn->pkt_data[ip6_offset]));
+                } 
+            }
+        }
+    }
+    
+    if (!(syn->ip_version == 4 || syn->ip_version == 6))
+    {
+        syn->ip_version = -1;
+        syn->tcp_offset = 0;
+    }
+
+    if (syn->tcp_offset > 0)
+    {
+        if (syn->tcp_offset <= syn->pkt_len - 20)
+        {
+            syn->tcp = (struct tcphdr *)(&(syn->pkt_data[syn->tcp_offset]));
+        } else
+        {
+            syn->ip_version = -1;
+        }
+    }
+    
+    return syn->ip_version;
+}
 
 
 
@@ -102,14 +180,15 @@ static int fingerprint_pre_connection(conn_rec *c, void *csd)
     ap_log_cerror(APLOG_MARK, APLOG_ERR, 0, c, "pre_connection");
 
     fingerprint_data_t *data = NULL;
-    struct tcp_info *ti = NULL;
+    struct tcp_info ti;
     int ti_length = 0;
     int res = 0;
     apr_status_t stat = 0;
     int sd = 0;
     int nonblock = 0;
-    char *syn_packet;
+    char syn_packet[196];
     int syn_length = 96;
+    
     
     apr_os_sock_get(&sd, csd);
 
@@ -119,10 +198,10 @@ static int fingerprint_pre_connection(conn_rec *c, void *csd)
         data = apr_pcalloc(c->pool, sizeof(*data));
         ap_set_module_config(c->conn_config, &tcpfingerprint_module, data);
 
-        ti_length = sizeof(*ti);
-        ti = apr_pcalloc(c->pool, ti_length);
+        ti_length = sizeof(ti);
+        //ti = apr_pcalloc(c->pool, ti_length);
 
-        syn_packet = apr_pcalloc(c->pool, syn_length);
+        //syn_packet = apr_pcalloc(c->pool, syn_length);
                 
         stat = apr_socket_opt_get(csd, APR_SO_NONBLOCK, &nonblock);
         if (stat != APR_SUCCESS)
@@ -140,7 +219,7 @@ static int fingerprint_pre_connection(conn_rec *c, void *csd)
         }
 
 
-        res = getsockopt(sd, IPPROTO_TCP, TCP_INFO, ti, (socklen_t *)&ti_length);
+        res = getsockopt(sd, IPPROTO_TCP, TCP_INFO, &ti, (socklen_t *)&ti_length);
         if (res < 0)
         {
             stat = apr_get_netos_error();
@@ -149,11 +228,11 @@ static int fingerprint_pre_connection(conn_rec *c, void *csd)
         } else
         {
             //check ti len?
-            data->tcp_info = ti;
+            data->tcp_info = apr_pmemdup(c->pool, &ti, ti_length);
             ap_log_cerror(APLOG_MARK, APLOG_ERR, 0, c, "TCP_INFO stored for connection");
         }
 
-        res = getsockopt(sd, IPPROTO_TCP, TCP_SAVED_SYN, syn_packet, (socklen_t *)&syn_length);
+        res = getsockopt(sd, IPPROTO_TCP, TCP_SAVED_SYN, &syn_packet, (socklen_t *)&syn_length);
         if (res < 0)
         {
             stat = apr_get_netos_error();
@@ -161,7 +240,9 @@ static int fingerprint_pre_connection(conn_rec *c, void *csd)
 
         } else
         {
-            data->syn_packet = syn_packet;
+            data->saved_syn = apr_pcalloc(c->pool, sizeof(syn_packet_t));
+            data->saved_syn->pkt_data = apr_pmemdup(c->pool, &syn_packet, syn_length);
+            data->saved_syn->pkt_len = syn_length;
             ap_log_cerror(APLOG_MARK, APLOG_ERR, 0, c, "TCP_SAVED_SYN stored for connection");
         }
 
@@ -205,10 +286,10 @@ static int fingerprint_fixups(request_rec* r)
             value = apr_psprintf(r->pool, "%lu", (unsigned long) data->tcp_info->tcpi_rtt);
             apr_table_setn(r->subprocess_env, name, value);
         }
-        if (data->syn_packet)
+        if (data->saved_syn && (parse_pkt(data->saved_syn) > 0))
         {
-            name = apr_psprintf(r->pool, "%s", "IP_VERSION");
-            value = apr_psprintf(r->pool, "%u", (((unsigned char) data->syn_packet[0]) & 0xF0) >> 4);
+            name = apr_psprintf(r->pool, "%s", "TCP_OFFSET");
+            value = apr_psprintf(r->pool, "%i", data->saved_syn->tcp_offset);
             apr_table_setn(r->subprocess_env, name, value);
         }
     }
@@ -236,4 +317,5 @@ module AP_MODULE_DECLARE_DATA tcpfingerprint_module = {
     NULL,                  /* table of config file commands       */
     tcpfingerprint_register_hooks  /* register hooks                      */
 };
+
 
