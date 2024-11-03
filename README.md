@@ -33,7 +33,8 @@ Timestamp
  - Collect TCP_SAVED_SYN
    - ~~Patch for apache to set TCP_SAVE_SYN on listen socket(s)~~ -- Not necessary, set in module startup
  - Expose TCP_SAVED_SYN -- exposing IP version currently
-   - Parse syn_packet 
+   - Parse syn_packet
+     - IPv4 implemented, IPv6 and extensions need tested
  - Configurations (like STDENVVARS) -- are there any necessary?
  - 
 
