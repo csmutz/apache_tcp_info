@@ -37,16 +37,27 @@
 **    The sample page from mod_tcpfingerprint.c
 */ 
 
+
+#include "apr.h"
+#include "apr_strings.h"
+#include "apr_lib.h"
+#include "apr_optional.h"
+
+#define APR_WANT_STRFUNC
+#include "apr_want.h"
+
 #include "httpd.h"
 #include "http_config.h"
 #include "http_protocol.h"
-#include "ap_config.h"
 #include "http_connection.h"
 #include "http_log.h"
-#include "apr_strings.h"
 #include "http_request.h"
+
+#include "ap_config.h"
 #include "ap_listen.h"
-#include "apr_lib.h"
+#include "ap_expr.h"
+
+#include "mod_log_config.h"
 
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -54,8 +65,28 @@
 #include <netinet/ip6.h>
 #include <netinet/tcp.h>
 
+#define strcEQ(s1,s2)    (strcasecmp(s1,s2) == 0)
+#define strIsEmpty(s)    (s == NULL || s[0] == '\0')
+
+#define FINGERPRINT_IP_VERSION 0
+#define FINGERPRINT_IP_TTL 1
+#define FINGERPRINT_IP_DF 2
+
+#define FINGERPRINT_TCP_WINDOW_SIZE 17
+#define FINGERPRINT_TCP_MSS 18
+#define FINGERPRINT_TCP_WINDOW_SCALE 19
+
 
 extern module AP_MODULE_DECLARE_DATA tcpfingerprint_module;
+
+
+static const char *const fingerprint_vars[] = 
+{
+    "FINGERPRINT_TCP_RTT",
+    "FINGERPRINT_IP_TTL",
+    NULL
+};
+
 
 
 typedef struct
@@ -66,6 +97,7 @@ typedef struct
     const struct ip6_hdr *ip6;
     const struct tcphdr *tcp;
     int tcp_offset;
+    int tcp_length;
     int ip_version;
 } syn_packet_t;
 
@@ -75,7 +107,6 @@ typedef struct
     syn_packet_t *saved_syn;
     //TODO: add timestamp to allow calcuation of TLS_HELLO_DELAY
 } fingerprint_data_t;
-
 
 
 static int parse_pkt(syn_packet_t *syn)
@@ -139,6 +170,79 @@ static int parse_pkt(syn_packet_t *syn)
     return syn->ip_version;
 }
 
+static char *fingerprint_var_tcpinfo(fingerprint_data_t *data, request_rec *r, char *var)
+{
+    if (data->tcp_info)
+    {
+        if (strcEQ(var, "FINGERPRINT_TCP_RTT"))
+            return (char *)apr_psprintf(r->pool, "%lu", (unsigned long) data->tcp_info->tcpi_rtt);
+    }
+    return NULL;
+}
+
+static char *fingerprint_var_syn(fingerprint_data_t *data, request_rec *r, char *var)
+{
+    if (data->saved_syn && (parse_pkt(data->saved_syn) > 0))
+    {
+        if (strcEQ(var, "FINGERPRINT_IP_TTL"))
+        {
+            if (data->saved_syn->ip_version == 4)
+            {
+                return (char *)apr_psprintf(r->pool, "%u", (unsigned int)data->saved_syn->ip->ttl);
+            }
+            //do IPv6 here
+        }
+        
+    }
+    return NULL;
+}
+
+
+//get a variable by name
+static char *fingerprint_var(request_rec *r, char *var)
+{
+    conn_rec *c = r->connection;
+    fingerprint_data_t *data = NULL;
+
+    char *value = NULL;
+
+    //always use master connection?
+    if (c->master)
+    {
+        c = c->master;
+    }
+
+    data = (fingerprint_data_t *) ap_get_module_config(c->conn_config, &tcpfingerprint_module);
+
+    if (strcEQ(var, "FINGERPRINT_TCP_RTT"))
+        return fingerprint_var_tcpinfo(data, r, var);
+    if (strcEQ(var, "FINGERPRINT_IP_TTL"))
+        return fingerprint_var_syn(data, r, var);
+    return NULL;
+
+}    
+    
+static const char *fingerprint_log_handler(request_rec *r, char *var)
+{
+    return fingerprint_var(r, var);
+}
+
+void fingerprint_log_register(apr_pool_t *p)
+{
+    APR_OPTIONAL_FN_TYPE(ap_register_log_handler) *log_pfn_register;
+
+    log_pfn_register = APR_RETRIEVE_OPTIONAL_FN(ap_register_log_handler);
+
+    if (log_pfn_register)
+    {
+        log_pfn_register(p, "g", fingerprint_log_handler, 0);
+    }
+}
+
+
+
+
+
 
 
 static int fingerprint_post_config(apr_pool_t *pconf, apr_pool_t *plog, apr_pool_t *ptemp, server_rec *s)
@@ -170,6 +274,8 @@ static int fingerprint_post_config(apr_pool_t *pconf, apr_pool_t *plog, apr_pool
     }
 
     //set callback for customlog
+    fingerprint_log_register(pconf);
+
     return OK; 
 
 }
@@ -263,37 +369,19 @@ static int fingerprint_pre_connection(conn_rec *c, void *csd)
 
 static int fingerprint_fixups(request_rec* r)
 {
-    conn_rec *c = r->connection;
-    fingerprint_data_t *data = NULL;
-
-    char *name= NULL;
-    char *value = NULL;
-
+    apr_table_t *env = r->subprocess_env;
+    char *var, *val = "";
+    int i;
     
-    //always use master connection?
-    if (c->master)
+    for (i = 0; fingerprint_vars[i]; i++)
     {
-        c = c->master;
-    }
-    
-    data = (fingerprint_data_t *) ap_get_module_config(c->conn_config, &tcpfingerprint_module);
-    
-    if (data)
-    {
-        if (data->tcp_info)
+        var = (char *)fingerprint_vars[i];
+        val = fingerprint_var(r, var);
+        if (!strIsEmpty(val)) 
         {
-            name = apr_psprintf(r->pool, "%s", "TCP_RTT");
-            value = apr_psprintf(r->pool, "%lu", (unsigned long) data->tcp_info->tcpi_rtt);
-            apr_table_setn(r->subprocess_env, name, value);
-        }
-        if (data->saved_syn && (parse_pkt(data->saved_syn) > 0))
-        {
-            name = apr_psprintf(r->pool, "%s", "TCP_OFFSET");
-            value = apr_psprintf(r->pool, "%i", data->saved_syn->tcp_offset);
-            apr_table_setn(r->subprocess_env, name, value);
+            apr_table_setn(env, var, val);
         }
     }
-
     return OK;
 
 }
