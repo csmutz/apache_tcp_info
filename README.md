@@ -12,30 +12,34 @@ TCP_INFO
 
 SAVED_SYN
  - IP TTL
+ - IP DF
+ - IP ECN
  - Window Size
- - Extension IDs
- - Extension values
+ - Option IDs
+ - Option values
    - MSS
    - Window Scale
- - DF?
- - ECN?
+ - TCP ECN 
 
 Timestamp
  - For Hello Delay
+
+Full SYN Packet ?
 
 ### Tasks
 
  - ~~basic module skeleton~~
  - ~~Collect TCP_INFO~~
  - ~~Expose TCP_INFO Data~~
- - retrival functions for variables (work for both logging callback and adding vars to env)
-   - Callback function for logging
- - Collect TCP_SAVED_SYN
+ - ~~retrival functions for variables (work for both logging callback and adding vars to env)~~
+   - ~~Callback function for logging~~
+ - ~~Collect TCP_SAVED_SYN~~
    - ~~Patch for apache to set TCP_SAVE_SYN on listen socket(s)~~ -- Not necessary, set in module startup
- - Expose TCP_SAVED_SYN -- exposing IP version currently
-   - Parse syn_packet
-     - IPv4 implemented, IPv6 and extensions need tested
+ - ~~Expose TCP_SAVED_SYN~~
+   - ~~Parse syn_packet~~
+     - IPv4 and TCP implemented, IPv6 with extensions needs tested
  - Configurations (like STDENVVARS) -- are there any necessary?
+ - Fix debug/error message (many current errors should be deleted or changed to debug)
  - 
 
 ## Design
@@ -55,12 +59,6 @@ The module will register a new function for custom logging.
 
 #### TCP attributes
 
-See ap_register_log_handler to add new custom log handler
-
-See apr_os_sock_get and ap_get_conn_socket to get current socket 
-
-https://stackoverflow.com/questions/53702714/get-the-socket-from-an-apache-module
-
 TCP_SAVE_SYN info: https://lwn.net/Articles/645128/
 
 TCP_INFO: https://linuxgazette.net/136/pfeiffer.html
@@ -72,46 +70,20 @@ See modules/examples/mod_example_hooks.c for best documentation on callbacks. ht
 
 https://httpd.apache.org/docs/2.4/developer/modules.html
 
-Is there a better resource?
-
 Callbacks to use:
  - ap_hook_process_connection: Collect info for connection
  - ap_hook_fixups for making env variables available
  - app_hook_pre_config? to register custom logging function
 
-Example that sets environment variables: https://www.tirasa.net/en/blog/developing-custom-apache2-module
-
 getsockopt fails on non-blocking socket, see apr_socket_opt_set
 
 ##### Module data storage #####
 
-See myConnConfigSet() from mod_ssl, ap_set_module_config function
-
 See modules/metadata/mod_remoteip.c as example of storage
-
-#### SAVED_SYN parsing
-
-Structures to understand:
- - sk_buff
- - tcphdr
-
-Example code: 
-
-https://www.linuxquestions.org/questions/programming-9/access-tcp-header-seq-757115/ (there has to be better)
-
-https://github.com/baiwei0427/coding-examples/blob/master/ipip/ipip_tcp.c
 
 #### Changes to Apache
 
-To get access to saved SYN, core apache will need to be modified to set SOCKOPT on listen socket.
- - See server/listen.c
- - Use ListenBackLog as example of configuration directive
- - Use defined(SO_REUSEPORT) as example to ensure TCP_SAVE_SYN functionality
- - Is there any way to get acces to the listen socket (the accept socket is easy) from in the module? Even if we could, isn't global setting best anyway?
-   - Yes, it looks like there is. See (global variable?) ‎ap_listeners‎. See remoteip as example. https://github.com/apache/httpd/blob/trunk/modules/metadata/mod_remoteip.c#L752
-   - What callback? maybe ap_hook_pre_mpm or ap_hook_post_config
-
- This worked (setting SAVE_SYN in ap_hook_post_config) -- no patch to apache should be necessary.
+setting SAVE_SYN in ap_hook_post_config worked -- no patch to apache should be necessary.
 
 #### Compile/Install
 
@@ -130,4 +102,6 @@ sudo apxs2 -iac mod_tcpfingerprint.c
 https://blog.mygraphql.com/en/notes/low-tec/network/tcp-inspect/#rationale---how-ss-work
 
 https://github.com/apache/trafficserver/blob/master/plugins/tcpinfo/tcpinfo.cc
+
+https://www.tirasa.net/en/blog/developing-custom-apache2-module
 
