@@ -74,8 +74,8 @@ https://httpd.apache.org/docs/2.4/developer/modules.html
 
 Callbacks to use:
  - ap_hook_process_connection: Collect info for connection
- - ap_hook_fixups for making env variables available
- - app_hook_pre_config? to register custom logging function
+ - ap_hook_fixups: for making env variables available
+ - ap_hook_post_config: to register custom logging function and set SAVE_SYN on listen sockets
 
 getsockopt fails on non-blocking socket, see apr_socket_opt_set
 
