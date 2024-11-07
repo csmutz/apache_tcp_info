@@ -68,22 +68,20 @@
 #define strcEQ(s1,s2)    (strcasecmp(s1,s2) == 0)
 #define strIsEmpty(s)    (s == NULL || s[0] == '\0')
 
-#define FINGERPRINT_IP_VERSION 0
-#define FINGERPRINT_IP_TTL 1
-#define FINGERPRINT_IP_DF 2
-
-#define FINGERPRINT_TCP_WINDOW_SIZE 17
-#define FINGERPRINT_TCP_MSS 18
-#define FINGERPRINT_TCP_WINDOW_SCALE 19
-
-
 extern module AP_MODULE_DECLARE_DATA tcpfingerprint_module;
 
 
 static const char *const fingerprint_vars[] = 
 {
-    "FINGERPRINT_TCP_RTT",
     "FINGERPRINT_IP_TTL",
+    "FINGERPRINT_IP_DF",
+    "FINGERPRINT_IP_ECN",
+    "FINGERPRINT_TCP_WSIZE",
+    "FINGERPRINT_TCP_WSCALE",
+    "FINGERPRINT_TCP_MSS",
+    "FINGERPRINT_TCP_RTT",
+    "FINGERPRINT_TCP_ECN",
+    "FINGERPRINT_TCP_OPTIONS",
     NULL
 };
 
@@ -91,7 +89,7 @@ static const char *const fingerprint_vars[] =
 
 typedef struct
 {
-    const char *pkt_data;
+    const unsigned char *pkt_data;
     int pkt_len;
     const struct iphdr *ip;
     const struct ip6_hdr *ip6;
@@ -109,7 +107,7 @@ typedef struct
 } fingerprint_data_t;
 
 
-static int parse_pkt(syn_packet_t *syn)
+static int parse_pkt(request_rec *r, syn_packet_t *syn)
 {
     int ip6_offset = sizeof(struct ip6_hdr);
     struct ip6_ext *ext;
@@ -118,8 +116,12 @@ static int parse_pkt(syn_packet_t *syn)
     {
         return syn->ip_version;
     }
-    syn->ip_version = (((unsigned char) syn->pkt_data[0]) & 0xF0) >> 4;
-    
+
+    //make sure pkt at least contains both ipv4 and ipv6 length and proto
+    if (syn->pkt_len >= 10)
+    {
+        syn->ip_version = (syn->pkt_data[0] & 0xF0) >> 4;
+    }
     
     if (syn->ip_version == 4)
     {
@@ -154,6 +156,7 @@ static int parse_pkt(syn_packet_t *syn)
     {
         syn->ip_version = -1;
         syn->tcp_offset = 0;
+        ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, "Error parsing SYN packet: IP header not found");
     }
 
     if (syn->tcp_offset > 0)
@@ -161,12 +164,17 @@ static int parse_pkt(syn_packet_t *syn)
         if (syn->tcp_offset <= syn->pkt_len - 20)
         {
             syn->tcp = (struct tcphdr *)(&(syn->pkt_data[syn->tcp_offset]));
+            if (syn->pkt_len > syn->tcp_offset + (syn->tcp->th_off * 5))
+            {
+                syn->pkt_len = syn->tcp_offset + (syn->tcp->th_off * 5);
+                ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, "Error parsing SYN packet: packet longer than TCP header length, truncating");
+            }
         } else
         {
             syn->ip_version = -1;
+            ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, "Error parsing SYN packet: packet shorter than TCP header");
         }
     }
-    
     return syn->ip_version;
 }
 
@@ -180,9 +188,71 @@ static char *fingerprint_var_tcpinfo(fingerprint_data_t *data, request_rec *r, c
     return NULL;
 }
 
+
+static char *fingerprint_var_syn_options(fingerprint_data_t *data, request_rec *r)
+{
+    char ret[200];
+    int i = data->saved_syn->tcp_offset + 20;
+    int ret_i = 0;
+    unsigned char opt;
+
+    while(i < data->saved_syn->pkt_len)
+    {
+        opt = data->saved_syn->pkt_data[i];
+        //add opt to string
+        ret_i += apr_snprintf(ret + ret_i, (200-ret_i), "%i,", (int)opt);
+
+        if ((opt > 1) && (i + 1 < data->saved_syn->pkt_len) && (data->saved_syn->pkt_data[i+1] != 0))
+        {
+            i += data->saved_syn->pkt_data[i+1];
+        } else
+        {
+            i++;
+        }
+    }
+    if (ret_i > 0)
+    {
+        ret[ret_i - 1] = '\0';
+        return apr_pstrndup(r->pool, ret, ret_i);
+    }   
+    return NULL;
+}
+
+
+
+static char *fingerprint_var_syn_option(fingerprint_data_t *data, request_rec *r, unsigned char var)
+{
+    int i = data->saved_syn->tcp_offset + 20;
+    unsigned char opt;
+    while(i < data->saved_syn->pkt_len)
+    {
+        opt = data->saved_syn->pkt_data[i];
+        if ((opt > 1) && (i + 1 < data->saved_syn->pkt_len) && (data->saved_syn->pkt_data[i+1] != 0))
+        {
+            if (var == opt)
+            {
+                if (var == 3)
+                {
+                    return (char *)apr_psprintf(r->pool, "%u", (unsigned int)data->saved_syn->pkt_data[i+2]);
+                }
+                if (var == 2)
+                {
+                    return (char *)apr_psprintf(r->pool, "%u", (unsigned int)(data->saved_syn->pkt_data[i+2] * 256 + data->saved_syn->pkt_data[i+3]));
+                }
+            }
+            i += data->saved_syn->pkt_data[i+1];
+        } else
+        {
+            i++;
+        }
+    }
+    return NULL;
+}
+
 static char *fingerprint_var_syn(fingerprint_data_t *data, request_rec *r, char *var)
 {
-    if (data->saved_syn && (parse_pkt(data->saved_syn) > 0))
+    //if parse_pkt returns 4 or 6 we are garunteed to have valid values in saved_syn
+    if (data->saved_syn && (parse_pkt(r, data->saved_syn) > 0))
     {
         if (strcEQ(var, "FINGERPRINT_IP_TTL"))
         {
@@ -190,9 +260,43 @@ static char *fingerprint_var_syn(fingerprint_data_t *data, request_rec *r, char 
             {
                 return (char *)apr_psprintf(r->pool, "%u", (unsigned int)data->saved_syn->ip->ttl);
             }
-            //do IPv6 here
+            if (data->saved_syn->ip_version == 6)
+            {
+                return (char *)apr_psprintf(r->pool, "%u", (unsigned int)data->saved_syn->ip6->ip6_hlim);
+            }
         }
-        
+        if (strcEQ(var, "FINGERPRINT_IP_ECN"))
+        {
+            if (data->saved_syn->ip_version == 4)
+            {
+                return (char *)apr_psprintf(r->pool, "%u", (unsigned int)(data->saved_syn->ip->tos & 0x03));
+            }
+            if (data->saved_syn->ip_version == 6)
+            {
+                return (char *)apr_psprintf(r->pool, "%u", (unsigned int)((data->saved_syn->pkt_data[1] & 0x03) >> 4));
+            }
+        }
+        if (strcEQ(var, "FINGERPRINT_TCP_WSIZE"))
+        {
+            return (char *)apr_psprintf(r->pool, "%u", (unsigned int)ntohs(data->saved_syn->tcp->window));
+        }
+        if (strcEQ(var, "FINGERPRINT_TCP_ECN"))
+        {
+            return (char *)apr_psprintf(r->pool, "%u", (unsigned int)data->saved_syn->tcp->res2);
+        }
+        if (strcEQ(var, "FINGERPRINT_TCP_WSCALE"))
+        {
+            return fingerprint_var_syn_option(data, r, 3);
+        }
+        if (strcEQ(var, "FINGERPRINT_TCP_MSS"))
+        {
+            return fingerprint_var_syn_option(data, r, 2);
+        }
+        if (strcEQ(var, "FINGERPRINT_TCP_OPTIONS"))
+        {
+            return fingerprint_var_syn_options(data, r);
+        }
+
     }
     return NULL;
 }
@@ -216,7 +320,19 @@ static char *fingerprint_var(request_rec *r, char *var)
 
     if (strcEQ(var, "FINGERPRINT_TCP_RTT"))
         return fingerprint_var_tcpinfo(data, r, var);
+    if (strcEQ(var, "FINGERPRINT_TCP_WSIZE"))
+        return fingerprint_var_syn(data, r, var);
+    if (strcEQ(var, "FINGERPRINT_TCP_MSS"))
+        return fingerprint_var_syn(data, r, var);
+    if (strcEQ(var, "FINGERPRINT_TCP_WSCALE"))
+        return fingerprint_var_syn(data, r, var);
+    if (strcEQ(var, "FINGERPRINT_TCP_ECN"))
+        return fingerprint_var_syn(data, r, var);
+    if (strcEQ(var, "FINGERPRINT_TCP_OPTIONS"))
+        return fingerprint_var_syn(data, r, var);
     if (strcEQ(var, "FINGERPRINT_IP_TTL"))
+        return fingerprint_var_syn(data, r, var);
+    if (strcEQ(var, "FINGERPRINT_IP_ECN"))
         return fingerprint_var_syn(data, r, var);
     return NULL;
 
