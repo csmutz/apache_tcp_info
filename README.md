@@ -34,7 +34,7 @@ Full SYN Packet ?
  - ~~retrival functions for variables (work for both logging callback and adding vars to env)~~
    - Callback function for logging-- Done, need to test
  - ~~Collect TCP_SAVED_SYN~~
-   - ~~Patch for apache to set TCP_SAVE_SYN on listen socket(s)~~ -- Not necessary, set in module startup
+   - ~~Patch for apache to set TCP_SAVE_SYN on listen socket(s)~~ -- Not necessary, set in module callback
  - ~~Expose TCP_SAVED_SYN~~
    - ~~Parse syn_packet~~
      - IPv4 and TCP implemented, IPv6 with extensions needs tested
