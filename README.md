@@ -32,13 +32,15 @@ Full SYN Packet ?
  - ~~Collect TCP_INFO~~
  - ~~Expose TCP_INFO Data~~
  - ~~retrival functions for variables (work for both logging callback and adding vars to env)~~
-   - ~~Callback function for logging~~
+   - Callback function for logging-- Done, need to test
  - ~~Collect TCP_SAVED_SYN~~
    - ~~Patch for apache to set TCP_SAVE_SYN on listen socket(s)~~ -- Not necessary, set in module startup
  - ~~Expose TCP_SAVED_SYN~~
    - ~~Parse syn_packet~~
      - IPv4 and TCP implemented, IPv6 with extensions needs tested
  - Configurations (like STDENVVARS) -- are there any necessary?
+   - Possibly option to refresh TCP_INFO to get other attributes
+   - Enable full SYN printing (hex encoded), this is typically about 60 bytes/120 hex chars
  - Fix debug/error message (many current errors should be deleted or changed to debug)
  - 
 
