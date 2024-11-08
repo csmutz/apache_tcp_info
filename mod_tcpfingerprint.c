@@ -356,10 +356,13 @@ void fingerprint_log_register(apr_pool_t *p)
 }
 
 
+static int fingerprint_pre_config(apr_pool_t *pconf, apr_pool_t *plog, apr_pool_t *ptemp)
+{
+    //set callback for customlog
+    fingerprint_log_register(pconf);
 
-
-
-
+    return OK;
+}
 
 static int fingerprint_post_config(apr_pool_t *pconf, apr_pool_t *plog, apr_pool_t *ptemp, server_rec *s)
 {
@@ -388,12 +391,6 @@ static int fingerprint_post_config(apr_pool_t *pconf, apr_pool_t *plog, apr_pool
             ap_log_error(APLOG_MARK, APLOG_ERR, 0, s, "set TCP_SAVE_SYN on listener for port: %i", (int) lr->bind_addr->port);
         }   
     }
-
-    //set callback for customlog
-    fingerprint_log_register(pconf);
-
-    return OK; 
-
 }
 
 
@@ -506,6 +503,7 @@ static int fingerprint_fixups(request_rec* r)
 static void tcpfingerprint_register_hooks(apr_pool_t *p)
 {
     //ap_hook_handler(tcpfingerprint_handler, NULL, NULL, APR_HOOK_MIDDLE);
+    ap_hook_pre_config(fingerprint_pre_config, NULL, NULL, APR_HOOK_MIDDLE);
     ap_hook_post_config(fingerprint_post_config, NULL, NULL, APR_HOOK_MIDDLE);
     ap_hook_pre_connection(fingerprint_pre_connection, NULL, NULL, APR_HOOK_MIDDLE);
     ap_hook_fixups(fingerprint_fixups, NULL, NULL, APR_HOOK_REALLY_FIRST);
