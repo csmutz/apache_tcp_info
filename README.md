@@ -38,9 +38,12 @@ Full SYN Packet ?
  - ~~Expose TCP_SAVED_SYN~~
    - ~~Parse syn_packet~~
      - IPv4 and TCP implemented, IPv6 with extensions needs tested
- - Configurations (like STDENVVARS) -- are there any necessary?
-   - Possibly option to refresh TCP_INFO to get other attributes
+ - Configurations
+   - Enable export of environment variables--like STDENVVARS
    - Enable full SYN printing (hex encoded), this is typically about 60 bytes/120 hex chars
+   - Enable full TCP_INFO printing (hex encoded)
+   - Possibly option to refresh TCP_INFO to get other attributes?
+   - Server config to limit sockets set to collect info?
  - Fix debug/error message (many current errors should be deleted or changed to debug)
  - 
 
