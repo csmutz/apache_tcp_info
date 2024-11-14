@@ -47,14 +47,13 @@ Full SYN Packet ?
      - Determine if SAVED_SYN and TCP_INFO should be retrieved for the current connection. (this is relatively expensive, copies ~500 bytes of data to connection)
        - Currently this is prior to reception of data on port, prior to knowledge of SNI or HTTP virtualhost, so most selectors aren't available.
          - If this was delayed until later, could select upon virtualhost
-       - TCP_INFO could be retrieved later (possibly per request) to collect other data like max observed packet size and RTT based on more data
-         - Getting SAVED_SYN and TCP_INFO currently requires putting socket in blocking mode--is this safe to do later?
-           - Is this safe to do at start of connection?
    - Per Request
      - Enable export of environment variables--like STDENVVARS.   TCPFingerprintEnvVars
-     - Enable full SYN printing (hex encoded), this is typically about 60 bytes/120 hex chars TCPFingerprintSavedSYN
-     - Enable full TCP_INFO printing (hex encoded) TCPFingerprintTCPInfo
-     - Possibly option to refresh TCP_INFO to get other attributes?
+     - Enable full SYN printing (hex encoded), this is typically about 60 bytes/120 hex chars TCPFingerprintEnvSavedSYN
+     - Enable full TCP_INFO printing (hex encoded) TCPFingerprintEnvTCPInfo
+      - TCP_INFO could be retrieved later (possibly per request) to collect other data like max observed packet size and RTT based on more data
+         - Getting SAVED_SYN and TCP_INFO currently requires putting socket in blocking mode--is this safe to do later?
+           - Is this safe to do at start of connection?
  - Fix debug/error message (many current errors should be deleted or changed to debug)
  - Implement TCP connection timestamp to compare to TLS Hello timestamp for hello_delay calculation
 
