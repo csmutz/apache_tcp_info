@@ -51,7 +51,7 @@ Full SYN Packet ?
          - Getting SAVED_SYN and TCP_INFO currently requires putting socket in blocking mode--is this safe to do later?
            - Is this safe to do at start of connection?
    - Per Request
-     - Enable export of environment variables--like STDENVVARS
+     - Enable export of environment variables--like STDENVVARS. TCPFingerprintEnvVars
      - Enable full SYN printing (hex encoded), this is typically about 60 bytes/120 hex chars
      - Enable full TCP_INFO printing (hex encoded)
      - Possibly option to refresh TCP_INFO to get other attributes?
