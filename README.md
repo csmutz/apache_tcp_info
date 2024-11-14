@@ -39,13 +39,24 @@ Full SYN Packet ?
    - ~~Parse syn_packet~~
      - IPv4 and TCP implemented, IPv6 with extensions needs tested
  - Configurations
-   - Enable export of environment variables--like STDENVVARS
-   - Enable full SYN printing (hex encoded), this is typically about 60 bytes/120 hex chars
-   - Enable full TCP_INFO printing (hex encoded)
-   - Possibly option to refresh TCP_INFO to get other attributes?
-   - Server config to limit sockets set to collect info?
+   - Per Listener
+     - Configure which listeners should have SAVE_SYN set (causes kernel to collect SYN for all connections, this is fairly efficient and is disabled in SYN floods by SYN cookie protections, etc--cost is pretty low)
+       - This would be similar to ListenBackLog--but ListenBackLog and their ilk appear to apply globally--not per Listen (this would also require mods to core httpd)
+       - Maybe list of IPs/ports which should have SAVE_SYN applied?
+   - Per Connection
+     - Determine if SAVED_SYN and TCP_INFO should be retrieved for the current connection. (this is relatively expensive, copies ~500 bytes of data to connection)
+       - Currently this is prior to reception of data on port, prior to knowledge of SNI or HTTP virtualhost, so most selectors aren't available.
+         - If this was delayed until later, could select upon virtualhost
+       - TCP_INFO could be retrieved later (possibly per request) to collect other data like max observed packet size and RTT based on more data
+         - Getting SAVED_SYN and TCP_INFO currently requires putting socket in blocking mode--is this safe to do later?
+           - Is this safe to do at start of connection?
+   - Per Request
+     - Enable export of environment variables--like STDENVVARS
+     - Enable full SYN printing (hex encoded), this is typically about 60 bytes/120 hex chars
+     - Enable full TCP_INFO printing (hex encoded)
+     - Possibly option to refresh TCP_INFO to get other attributes?
  - Fix debug/error message (many current errors should be deleted or changed to debug)
- - 
+ - Implement TCP connection timestamp to compare to TLS Hello timestamp for hello_delay calculation
 
 ## Design
 
