@@ -70,7 +70,6 @@
 
 extern module AP_MODULE_DECLARE_DATA tcpfingerprint_module;
 
-
 static const char *const fingerprint_vars[] = 
 {
     "FINGERPRINT_IP_TTL",
@@ -84,8 +83,6 @@ static const char *const fingerprint_vars[] =
     "FINGERPRINT_TCP_OPTIONS",
     NULL
 };
-
-
 
 typedef struct
 {
@@ -101,10 +98,21 @@ typedef struct
 
 typedef struct
 {
+    int export_envvars;
+    int export_envvars_set;
+    int export_savedsyn;
+    int export_savedsyn_set;
+    int export_tcpinfo;
+    int export_tcpinfo_set;
+} fingerprint_dir_conf_t;
+
+
+typedef struct
+{
     const struct tcp_info *tcp_info;
     syn_packet_t *saved_syn;
     //TODO: add timestamp to allow calcuation of TLS_HELLO_DELAY
-} fingerprint_data_t;
+} fingerprint_conn_data_t;
 
 
 static int parse_pkt(request_rec *r, syn_packet_t *syn)
@@ -178,7 +186,7 @@ static int parse_pkt(request_rec *r, syn_packet_t *syn)
     return syn->ip_version;
 }
 
-static char *fingerprint_var_tcpinfo(fingerprint_data_t *data, request_rec *r, char *var)
+static char *fingerprint_var_tcpinfo(fingerprint_conn_data_t *data, request_rec *r, char *var)
 {
     if (data->tcp_info)
     {
@@ -189,7 +197,7 @@ static char *fingerprint_var_tcpinfo(fingerprint_data_t *data, request_rec *r, c
 }
 
 
-static char *fingerprint_var_syn_options(fingerprint_data_t *data, request_rec *r)
+static char *fingerprint_var_syn_options(fingerprint_conn_data_t *data, request_rec *r)
 {
     char ret[200];
     int i = data->saved_syn->tcp_offset + 20;
@@ -220,7 +228,7 @@ static char *fingerprint_var_syn_options(fingerprint_data_t *data, request_rec *
 
 
 
-static char *fingerprint_var_syn_option(fingerprint_data_t *data, request_rec *r, unsigned char var)
+static char *fingerprint_var_syn_option(fingerprint_conn_data_t *data, request_rec *r, unsigned char var)
 {
     int i = data->saved_syn->tcp_offset + 20;
     unsigned char opt;
@@ -249,7 +257,7 @@ static char *fingerprint_var_syn_option(fingerprint_data_t *data, request_rec *r
     return NULL;
 }
 
-static char *fingerprint_var_syn(fingerprint_data_t *data, request_rec *r, char *var)
+static char *fingerprint_var_syn(fingerprint_conn_data_t *data, request_rec *r, char *var)
 {
     //if parse_pkt returns 4 or 6 we are garunteed to have valid values in saved_syn
     if (data->saved_syn && (parse_pkt(r, data->saved_syn) > 0))
@@ -306,7 +314,7 @@ static char *fingerprint_var_syn(fingerprint_data_t *data, request_rec *r, char 
 static char *fingerprint_var(request_rec *r, char *var)
 {
     conn_rec *c = r->connection;
-    fingerprint_data_t *data = NULL;
+    fingerprint_conn_data_t *data = NULL;
 
     char *value = NULL;
 
@@ -316,7 +324,7 @@ static char *fingerprint_var(request_rec *r, char *var)
         c = c->master;
     }
 
-    data = (fingerprint_data_t *) ap_get_module_config(c->conn_config, &tcpfingerprint_module);
+    data = (fingerprint_conn_data_t *) ap_get_module_config(c->conn_config, &tcpfingerprint_module);
 
     if (strcEQ(var, "FINGERPRINT_TCP_RTT"))
         return fingerprint_var_tcpinfo(data, r, var);
@@ -398,7 +406,7 @@ static int fingerprint_pre_connection(conn_rec *c, void *csd)
 {
     ap_log_cerror(APLOG_MARK, APLOG_ERR, 0, c, "pre_connection");
 
-    fingerprint_data_t *data = NULL;
+    fingerprint_conn_data_t *data = NULL;
     struct tcp_info ti;
     int ti_length = 0;
     int res = 0;
@@ -485,7 +493,13 @@ static int fingerprint_fixups(request_rec* r)
     apr_table_t *env = r->subprocess_env;
     char *var, *val = "";
     int i;
-    
+    fingerprint_dir_conf_t  *dir_conf = (fingerprint_dir_conf_t *) ap_get_module_config(r->per_dir_config, &tcpfingerprint_module);   
+ 
+    if (! (dir_conf->export_envvars))
+    {
+        return OK;
+    }
+
     for (i = 0; fingerprint_vars[i]; i++)
     {
         var = (char *)fingerprint_vars[i];
@@ -509,14 +523,71 @@ static void tcpfingerprint_register_hooks(apr_pool_t *p)
     ap_hook_fixups(fingerprint_fixups, NULL, NULL, APR_HOOK_REALLY_FIRST);
 }
 
+
+
+
+static const char *enable_envvars(cmd_parms *cmd, void *config, int flag)
+{
+    fingerprint_dir_conf_t *dir_conf = (fingerprint_dir_conf_t *)config;
+    if (flag)
+    {
+        dir_conf->export_envvars = 1;
+    }
+    dir_conf->export_envvars_set = 1;   
+
+    return NULL;
+}
+
+void *create_dir_conf(apr_pool_t *pool, char *context)
+{
+    fingerprint_dir_conf_t *dir_conf = apr_pcalloc(pool, sizeof(fingerprint_dir_conf_t));
+    dir_conf->export_envvars = 0;
+    dir_conf->export_envvars_set = 0;
+    dir_conf->export_savedsyn = 0;
+    dir_conf->export_savedsyn_set = 0;
+    dir_conf->export_tcpinfo = 0;
+    dir_conf->export_tcpinfo_set = 0;
+    return dir_conf;
+}
+
+void *merge_dir_conf(apr_pool_t *pool, void *BASE, void *ADD) {
+    fingerprint_dir_conf_t *base = (fingerprint_dir_conf_t *) BASE ; /* This is what was set in the parent context */
+    fingerprint_dir_conf_t *add = (fingerprint_dir_conf_t *) ADD ;   /* This is what is set in the new context */
+    fingerprint_dir_conf_t *conf = (fingerprint_dir_conf_t *) create_dir_conf(pool, "Merged configuration"); /* This will be the merged configuration */
+    fingerprint_dir_conf_t *src = NULL; //switch between base or add based on which has values set
+
+    //always inheret new configuration value if set
+    src = (add->export_envvars_set) ? add : base;
+    conf->export_envvars = src->export_envvars;
+    conf->export_envvars = src->export_envvars_set;
+    src = (add->export_savedsyn_set) ? add : base;
+    conf->export_savedsyn = src->export_savedsyn;
+    conf->export_savedsyn = src->export_savedsyn_set;
+    src = (add->export_tcpinfo_set) ? add : base;
+    conf->export_tcpinfo = src->export_tcpinfo;
+    conf->export_tcpinfo_set = src->export_tcpinfo_set;
+    return conf;
+}
+
+
+
+static const command_rec tcpfingerprint_cmds[] =
+{
+    AP_INIT_FLAG("TCPFingerprintEnvVars", enable_envvars, NULL,
+        ACCESS_CONF | OR_OPTIONS, "Enable creation of CGI environment variables ('on', 'off')"),
+
+    { NULL }
+};
+
+
 /* Dispatch list for API hooks */
 module AP_MODULE_DECLARE_DATA tcpfingerprint_module = {
     STANDARD20_MODULE_STUFF, 
-    NULL,                  /* create per-dir    config structures */
-    NULL,                  /* merge  per-dir    config structures */
+    create_dir_conf,                  /* create per-dir    config structures */
+    merge_dir_conf,                  /* merge  per-dir    config structures */
     NULL,                  /* create per-server config structures */
     NULL,                  /* merge  per-server config structures */
-    NULL,                  /* table of config file commands       */
+    tcpfingerprint_cmds,                  /* table of config file commands       */
     tcpfingerprint_register_hooks  /* register hooks                      */
 };
 
