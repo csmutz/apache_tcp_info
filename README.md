@@ -32,7 +32,7 @@ Full SYN Packet ?
  - ~~Collect TCP_INFO~~
  - ~~Expose TCP_INFO Data~~
  - ~~retrival functions for variables (work for both logging callback and adding vars to env)~~
-   - Callback function for logging-- Done, need to test
+   - ~~Callback function for logging~~ Done, uses %{VARNAME}g for CustomLog definition
  - ~~Collect TCP_SAVED_SYN~~
    - ~~Patch for apache to set TCP_SAVE_SYN on listen socket(s)~~ -- Not necessary, set in module callback
  - ~~Expose TCP_SAVED_SYN~~
