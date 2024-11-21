@@ -118,6 +118,8 @@ sudo apxs2 -iac mod_tcpfingerprint.c
 
 ### References:
 
+https://www.kernel.org/doc/html/next/userspace-api/netlink/intro.html
+
 https://blog.mygraphql.com/en/notes/low-tec/network/tcp-inspect/#rationale---how-ss-work
 
 https://github.com/apache/trafficserver/blob/master/plugins/tcpinfo/tcpinfo.cc
