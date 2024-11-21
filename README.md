@@ -55,7 +55,7 @@ Full SYN Packet ?
          - Getting SAVED_SYN and TCP_INFO currently requires putting socket in blocking mode--is this safe to do later?
            - Is this safe to do at start of connection?
       - switch to netlink instead of getsockopt?
-        - see sock_diag 
+        - see sock_diag() with INET_DIAG_INFO message type 
  - Fix debug/error message (many current errors should be deleted or changed to debug)
  - Implement TCP connection timestamp to compare to TLS Hello timestamp for hello_delay calculation
 
