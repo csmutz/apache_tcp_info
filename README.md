@@ -22,21 +22,21 @@ LogFormat ... %{FINGERPRINT_TCP_RTT}g %{FINGERPRINT_IP_TTL}g %{FINGERPRINT_TCP_W
 List of attributes we will collect.
 
 TCP_INFO
- - TCP_RTT
+ - TCP_RTT - FINGERPRINT_TCP_RTT
 
 SAVED_SYN
- - IP TTL
- - IP DF
- - IP ECN
- - Window Size
- - Option IDs
+ - IP TTL - FINGERPRINT_IP_TTL
+ - IP DF - FINGERPRINT_IP_DF
+ - IP ECN - FINGERPRINT_IP_ECN
+ - Window Size - FINGERPRINT_TCP_WSIZE
+ - Option IDs - FINGERPRINT_TCP_OPTIONS
  - Option values
-   - MSS
-   - Window Scale
- - TCP ECN 
+   - MSS - FINGERPRINT_TCP_MSS
+   - Window Scale - FINGERPRINT_TCP_WSCALE
+ - TCP ECN - FINGERPRINT_TCP_ECN
 
 Timestamp
- - For Hello Delay
+ - connection accept time - FINGERPRINT_ACCEPT_TIME
 
 Full Structures
  - SYN Packet
