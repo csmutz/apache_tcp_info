@@ -40,14 +40,15 @@ Full Structures
  - ~~Expose TCP_SAVED_SYN~~
    - ~~Parse syn_packet~~
      - IPv4 and TCP implemented, IPv6 with extensions needs tested
- - Fix debug/error message (many current errors should be deleted or changed to debug)
- - Implement TCP connection timestamp to compare to TLS Hello timestamp for hello_delay calculation
- - Look for additional features in TCP_INFO for inclusion
+ - ~~Fix debug/error message (many current errors should be deleted or changed to debug)~~
+ - ~~Implement TCP connection timestamp to compare to TLS Hello timestamp for hello_delay calculation~~
+ - ~~Look for additional features in TCP_INFO for inclusion~~
  - Configurations
    - Per Listener
      - **(NOT VALUABLE)** Configure which listeners should have SAVE_SYN set (causes kernel to collect SYN for all connections, this is fairly efficient and is disabled in SYN floods by SYN cookie protections, etc--cost is pretty low)
        - This would be similar to ListenBackLog--but ListenBackLog and their ilk appear to apply globally--not per Listen (this would also require mods to core httpd)
        - Maybe list of IPs/ports which should have SAVE_SYN applied?
+       - It's hard to understand use case for this
    - Per Connection
      - **(NOT FEASIBLE)** Determine if SAVED_SYN and TCP_INFO should be retrieved for the current connection. (this is moderately expensive, copies ~300 bytes of data to connection)
        - Currently this is prior to reception of data on port, prior to knowledge of SNI or HTTP virtualhost, so most selectors aren't available.
@@ -60,7 +61,16 @@ Full Structures
          - Getting SAVED_SYN and TCP_INFO currently requires putting socket in blocking mode--is this safe to do later?
            - Is this safe to do at start of connection?
       - switch to netlink instead of getsockopt?
-        - see INET_DIAG_INFO message type 
+        - see INET_DIAG_INFO message type
+      - If this was implemented, desired additional TCP_INFO attributes:
+        - tcpi_rcv_mss (max observed payload size)
+ - Database
+   - Database of TCP fingerprints, especially SOHO router/IoT devices (right now an effective database does not exist)
+   - Configuration for one database to create a label per client (env variable and logging attribute)
+   - Possible implementations
+     - Whatever database becomes available
+     - p0f -- database is out of date and code hasn't been updated but it would be easy to implement
+     - yara
  
 ## Design
 
