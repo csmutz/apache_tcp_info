@@ -1,7 +1,7 @@
 # mod_tcpfingerprint
-Create a module that retrieves connection tcp fingerprinting data from kernel, makes available for logging and environment variables for scripts.
+Create a module that retrieves connection tcp fingerprinting data from kernel (SAVED_SYN and TCP_INFO) and makes it available for logging and environment variables for scripts.
 
-In the future, integrate database for known fingerprints whenever a solid database becomes available.
+In the future, possibly integrate database for known fingerprints whenever a solid database becomes available.
 
 Possibly collect TCP_INFO at request time (instead of at start of connection) for meaningful collection of other TCP_INFO attributes. This might be better accomplished in a separate module that uses netlink to get TCP_INFO.
 
@@ -88,35 +88,15 @@ Full Structures
      - p0f -- database is out of date and code hasn't been updated but it would be easy to implement
      - yara
  
-## Design
-
-mod_tcpfingerprint will collect information on every new connection at the start of the connection.
-
-We will use two different mechanisms to get data from kernel
- - TCP_INFO to get RTT and things like path_mtu
- - syn packet using TCP_SAVED_SYN
-   - This will require enabling TCP_SAVE_SYN on listen socket
-
-The module will add env vars for every request
-
-The module will register a new function for custom logging.
-
-### Notes
-
-#### Compile
-
-Compile:
-```
-apxs2 -c mod_tcpfingerprint.c
-```
-
 ### References:
+
+#### netlink
 
 https://www.kernel.org/doc/html/next/userspace-api/netlink/intro.html
 
 https://blog.mygraphql.com/en/notes/low-tec/network/tcp-inspect/#rationale---how-ss-work
 
-https://github.com/apache/trafficserver/blob/master/plugins/tcpinfo/tcpinfo.cc
+#### Relevant Apache module development example
 
 https://www.tirasa.net/en/blog/developing-custom-apache2-module
 
