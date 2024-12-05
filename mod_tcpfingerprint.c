@@ -45,6 +45,7 @@ static const char *const fingerprint_vars[] =
     "FINGERPRINT_TCP_RTT",
     "FINGERPRINT_TCP_ECN",
     "FINGERPRINT_TCP_OPTIONS",
+    "FINGERPRINT_ACCEPT_TIME",
     NULL
 };
 
@@ -76,7 +77,7 @@ typedef struct
     const struct tcp_info *tcp_info;
     int tcp_info_len;
     syn_packet_t *saved_syn;
-    //TODO: add timestamp to allow calcuation of TLS_HELLO_DELAY
+    apr_time_t accept_ts;
 } fingerprint_conn_data_t;
 
 
@@ -328,6 +329,10 @@ static char *fingerprint_var(request_rec *r, char *var)
             }
         }
     }
+    if (strcEQ(var, "FINGERPRINT_ACCEPT_TIME"))
+    {
+        return apr_psprintf(r->pool, "%" APR_INT64_T_FMT, data->accept_ts);
+    }
     return NULL;
 }    
     
@@ -410,10 +415,9 @@ static int fingerprint_pre_connection(conn_rec *c, void *csd)
         data = apr_pcalloc(c->pool, sizeof(*data));
         ap_set_module_config(c->conn_config, &tcpfingerprint_module, data);
 
-        ti_length = sizeof(ti);
-        //ti = apr_pcalloc(c->pool, ti_length);
+        data->accept_ts = apr_time_now();
 
-        //syn_packet = apr_pcalloc(c->pool, syn_length);
+        ti_length = sizeof(ti);
                 
         stat = apr_socket_opt_get(csd, APR_SO_NONBLOCK, &nonblock);
         if (stat != APR_SUCCESS)
@@ -523,12 +527,10 @@ static void tcpfingerprint_register_hooks(apr_pool_t *p)
 {
     //ap_hook_handler(tcpfingerprint_handler, NULL, NULL, APR_HOOK_MIDDLE);
     ap_hook_pre_config(fingerprint_pre_config, NULL, NULL, APR_HOOK_MIDDLE);
-    ap_hook_post_config(fingerprint_post_config, NULL, NULL, APR_HOOK_MIDDLE);
-    ap_hook_pre_connection(fingerprint_pre_connection, NULL, NULL, APR_HOOK_MIDDLE);
+    ap_hook_post_config(fingerprint_post_config, NULL, NULL, APR_HOOK_LAST);
+    ap_hook_pre_connection(fingerprint_pre_connection, NULL, NULL, APR_HOOK_FIRST);
     ap_hook_fixups(fingerprint_fixups, NULL, NULL, APR_HOOK_REALLY_FIRST);
 }
-
-
 
 
 static const char *enable_envvars(cmd_parms *cmd, void *config, int flag)
