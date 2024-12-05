@@ -7,6 +7,10 @@ When available, integrate database for known fingerprints, especially devices li
 
 This module should be ready for use, at least testing. To use this module, compile and install.
 
+```
+sudo apxs2 -iac mod_tcpfingerprint.c
+```
+
 Then either add to LogFormat defintion or turn TCPFingerprintEnvVars on and use in cgi scripts.
 
 ```
@@ -97,46 +101,11 @@ The module will register a new function for custom logging.
 
 ### Notes
 
-#### TCP attributes
-
-TCP_SAVE_SYN info: https://lwn.net/Articles/645128/
-
-TCP_INFO: https://linuxgazette.net/136/pfeiffer.html
-
-#### Module Development
-
-###### Module Basics ######
-See modules/examples/mod_example_hooks.c for best documentation on callbacks. https://github.com/apache/httpd/blob/trunk/modules/examples/mod_example_hooks.c
-
-https://httpd.apache.org/docs/2.4/developer/modules.html
-
-Callbacks used:
- - ap_hook_pre_config: to register custom logging function
- - ap_hook_post_config: set SAVE_SYN on listen sockets
- - ap_hook_process_connection: Collect info for connection
- - ap_hook_fixups: for making env variables available
- 
-
-getsockopt fails on non-blocking socket, see apr_socket_opt_set
-
-##### Module data storage #####
-
-See modules/metadata/mod_remoteip.c as example of storage
-
-#### Changes to Apache
-
-setting SAVE_SYN in ap_hook_post_config worked -- no patch to apache should be necessary.
-
-#### Compile/Install
+#### Compile
 
 Compile:
 ```
 apxs2 -c mod_tcpfingerprint.c
-```
-
-Install and enable:
-```
-sudo apxs2 -iac mod_tcpfingerprint.c
 ```
 
 ### References:
