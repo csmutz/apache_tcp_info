@@ -21,7 +21,7 @@ LogFormat ... %{FINGERPRINT_TCP_RTT}g %{FINGERPRINT_IP_TTL}g %{FINGERPRINT_TCP_W
 
 ## Attributes
 
-List of attributes we will collect.
+List of variables exposed
 
 TCP_INFO
  - TCP_RTT - FINGERPRINT_TCP_RTT
@@ -42,7 +42,7 @@ Timestamp
 
 Full Structures
  - SYN Packet - FINGERPRINT_SAVED_SYN
- - TCP_INFO - FINGERPRINT_ACCEPT_TIME
+ - TCP_INFO - FINGERPRINT_TCP_INFO
 
 ### Tasks
 
