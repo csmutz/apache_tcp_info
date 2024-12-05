@@ -45,18 +45,18 @@ Full Structures
  - Look for additional features in TCP_INFO for inclusion
  - Configurations
    - Per Listener
-     - Configure which listeners should have SAVE_SYN set (causes kernel to collect SYN for all connections, this is fairly efficient and is disabled in SYN floods by SYN cookie protections, etc--cost is pretty low)
+     - **(NOT VALUABLE)** Configure which listeners should have SAVE_SYN set (causes kernel to collect SYN for all connections, this is fairly efficient and is disabled in SYN floods by SYN cookie protections, etc--cost is pretty low)
        - This would be similar to ListenBackLog--but ListenBackLog and their ilk appear to apply globally--not per Listen (this would also require mods to core httpd)
        - Maybe list of IPs/ports which should have SAVE_SYN applied?
    - Per Connection
-     - Determine if SAVED_SYN and TCP_INFO should be retrieved for the current connection. (this is moderately expensive, copies ~300 bytes of data to connection)
+     - **(NOT FEASIBLE)** Determine if SAVED_SYN and TCP_INFO should be retrieved for the current connection. (this is moderately expensive, copies ~300 bytes of data to connection)
        - Currently this is prior to reception of data on port, prior to knowledge of SNI or HTTP virtualhost, so most selectors aren't available.
          - If this was delayed until later, could select upon virtualhost
    - Per Request
      - ~~Enable export of environment variables--like STDENVVARS.~~   Done: TCPFingerprintEnvVars
      - ~~Enable full SYN printing (hex encoded), this is typically about 60 bytes/120 hex chars~~ Done: TCPFingerprintEnvSavedSYN
      - ~~Enable full TCP_INFO printing (hex encoded)~~ Done: TCPFingerprintEnvTCPInfo
-      - TCP_INFO could be retrieved later (possibly per request) to collect other data like max observed packet size and RTT based on more data
+      - **(PUNT FOR NOW)** TCP_INFO could be retrieved later (possibly per request) to collect other data like max observed packet size and RTT based on more data
          - Getting SAVED_SYN and TCP_INFO currently requires putting socket in blocking mode--is this safe to do later?
            - Is this safe to do at start of connection?
       - switch to netlink instead of getsockopt?
