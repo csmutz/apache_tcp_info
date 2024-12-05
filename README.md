@@ -24,7 +24,9 @@ SAVED_SYN
 Timestamp
  - For Hello Delay
 
-Full SYN Packet ?
+Full Structures
+ - SYN Packet
+ - TCP_INFO
 
 ### Tasks
 
@@ -38,6 +40,9 @@ Full SYN Packet ?
  - ~~Expose TCP_SAVED_SYN~~
    - ~~Parse syn_packet~~
      - IPv4 and TCP implemented, IPv6 with extensions needs tested
+ - Fix debug/error message (many current errors should be deleted or changed to debug)
+ - Implement TCP connection timestamp to compare to TLS Hello timestamp for hello_delay calculation
+ - Look for additional features in TCP_INFO for inclusion
  - Configurations
    - Per Listener
      - Configure which listeners should have SAVE_SYN set (causes kernel to collect SYN for all connections, this is fairly efficient and is disabled in SYN floods by SYN cookie protections, etc--cost is pretty low)
@@ -55,10 +60,8 @@ Full SYN Packet ?
          - Getting SAVED_SYN and TCP_INFO currently requires putting socket in blocking mode--is this safe to do later?
            - Is this safe to do at start of connection?
       - switch to netlink instead of getsockopt?
-        - see sock_diag() with INET_DIAG_INFO message type 
- - Fix debug/error message (many current errors should be deleted or changed to debug)
- - Implement TCP connection timestamp to compare to TLS Hello timestamp for hello_delay calculation
-
+        - see INET_DIAG_INFO message type 
+ 
 ## Design
 
 mod_tcpfingerprint will collect information on every new connection at the start of the connection.
