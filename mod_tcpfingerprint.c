@@ -1,5 +1,5 @@
 /* 
-**  mod_tcpfingerprint.c -- Apache sample tcpfingerprint module
+**  mod_tcpfingerprint.c -- module for collecting TCP fingerprinting data from kernel
 */ 
 
 #include "apr.h"
@@ -130,7 +130,7 @@ static int parse_pkt(request_rec *r, syn_packet_t *syn)
     {
         syn->ip_version = -1;
         syn->tcp_offset = 0;
-        ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, "Error parsing SYN packet: IP header not found");
+        ap_log_rerror(APLOG_MARK, APLOG_DEBUG, 0, r, "Error parsing SYN packet: IP header not found");
     }
 
     if (syn->tcp_offset > 0)
@@ -141,12 +141,12 @@ static int parse_pkt(request_rec *r, syn_packet_t *syn)
             if (syn->pkt_len > syn->tcp_offset + (syn->tcp->th_off * 5))
             {
                 syn->pkt_len = syn->tcp_offset + (syn->tcp->th_off * 5);
-                ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, "Error parsing SYN packet: packet longer than TCP header length, truncating");
+                ap_log_rerror(APLOG_MARK, APLOG_DEBUG, 0, r, "Error parsing SYN packet: packet longer than TCP header length, truncating");
             }
         } else
         {
             syn->ip_version = -1;
-            ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, "Error parsing SYN packet: packet shorter than TCP header");
+            ap_log_rerror(APLOG_MARK, APLOG_DEBUG, 0, r, "Error parsing SYN packet: packet shorter than TCP header");
         }
     }
     return syn->ip_version;
@@ -383,19 +383,17 @@ static int fingerprint_post_config(apr_pool_t *pconf, apr_pool_t *plog, apr_pool
         {
             stat = apr_get_netos_error();
             ap_log_error(APLOG_MARK, APLOG_ERR, stat, s, "Failed to set TCP_SAVE_SYN on listener for port: %i", (int) lr->bind_addr->port);
-        } else
-        {
-
-            ap_log_error(APLOG_MARK, APLOG_ERR, 0, s, "set TCP_SAVE_SYN on listener for port: %i", (int) lr->bind_addr->port);
-        }   
+        } 
+        //else
+        //{
+        //    ap_log_error(APLOG_MARK, APLOG_DEBUG, 0, s, "set TCP_SAVE_SYN on listener for port: %i", (int) lr->bind_addr->port);
+        //}   
     }
 }
 
 
 static int fingerprint_pre_connection(conn_rec *c, void *csd)
 {
-    ap_log_cerror(APLOG_MARK, APLOG_ERR, 0, c, "pre_connection");
-
     fingerprint_conn_data_t *data = NULL;
     struct tcp_info ti;
     int ti_length = 0;
@@ -422,7 +420,7 @@ static int fingerprint_pre_connection(conn_rec *c, void *csd)
         stat = apr_socket_opt_get(csd, APR_SO_NONBLOCK, &nonblock);
         if (stat != APR_SUCCESS)
         {
-            ap_log_cerror(APLOG_MARK, APLOG_ERR, 0, c, "Failed to get socket nonblock status");
+            ap_log_cerror(APLOG_MARK, APLOG_DEBUG, 0, c, "Failed to get socket nonblock status");
         }
 
         if (nonblock)
@@ -430,7 +428,7 @@ static int fingerprint_pre_connection(conn_rec *c, void *csd)
             stat = apr_socket_opt_set(csd, APR_SO_NONBLOCK, 0);
             if (stat != APR_SUCCESS)
             {
-                ap_log_cerror(APLOG_MARK, APLOG_ERR, 0, c, "Failed to temporarily disable socket nonblock");
+                ap_log_cerror(APLOG_MARK, APLOG_DEBUG, 0, c, "Failed to temporarily disable socket nonblock");
             }
         }
 
@@ -439,38 +437,34 @@ static int fingerprint_pre_connection(conn_rec *c, void *csd)
         if (res < 0)
         {
             stat = apr_get_netos_error();
-            ap_log_cerror(APLOG_MARK, APLOG_ERR, stat, c, "error getting TCP_INFO");
+            ap_log_cerror(APLOG_MARK, APLOG_DEBUG, stat, c, "error getting TCP_INFO");
 
         } else
         {
             //check ti len?
             data->tcp_info = apr_pmemdup(c->pool, &ti, ti_length);
             data->tcp_info_len = ti_length;
-            ap_log_cerror(APLOG_MARK, APLOG_ERR, 0, c, "TCP_INFO stored for connection");
         }
 
         res = getsockopt(sd, IPPROTO_TCP, TCP_SAVED_SYN, &syn_packet, (socklen_t *)&syn_length);
         if (res < 0)
         {
             stat = apr_get_netos_error();
-            ap_log_cerror(APLOG_MARK, APLOG_ERR, stat, c, "error getting TCP_SAVED_SYN");
+            ap_log_cerror(APLOG_MARK, APLOG_DEBUG, stat, c, "error getting TCP_SAVED_SYN");
 
         } else
         {
             data->saved_syn = apr_pcalloc(c->pool, sizeof(syn_packet_t));
             data->saved_syn->pkt_data = apr_pmemdup(c->pool, &syn_packet, syn_length);
             data->saved_syn->pkt_len = syn_length;
-            ap_log_cerror(APLOG_MARK, APLOG_ERR, 0, c, "TCP_SAVED_SYN stored for connection");
         }
-
-
 
         if (nonblock)
         {
             stat = apr_socket_opt_set(csd, APR_SO_NONBLOCK, 1);
             if (stat != APR_SUCCESS)
             {
-                ap_log_cerror(APLOG_MARK, APLOG_ERR, 0, c, "Failed to re-enable socket nonblock");
+                ap_log_cerror(APLOG_MARK, APLOG_DEBUG, 0, c, "Failed to re-enable socket nonblock");
             }
         }
 
@@ -519,7 +513,6 @@ static int fingerprint_fixups(request_rec* r)
     }
 
     return OK;
-
 }
 
 
@@ -606,9 +599,6 @@ static const command_rec tcpfingerprint_cmds[] =
         ACCESS_CONF | OR_OPTIONS, "Enable dump of raw TCP_INFO in environment variables ('on', 'off')"),
     AP_INIT_FLAG("TCPFingerprintEnvSavedSYN", enable_envsavedsyn, NULL,
         ACCESS_CONF | OR_OPTIONS, "Enable dump of raw SAVED_SYN in environment variables ('on', 'off')"),
-
-
-
     { NULL }
 };
 
@@ -616,12 +606,12 @@ static const command_rec tcpfingerprint_cmds[] =
 /* Dispatch list for API hooks */
 module AP_MODULE_DECLARE_DATA tcpfingerprint_module = {
     STANDARD20_MODULE_STUFF, 
-    create_dir_conf,                  /* create per-dir    config structures */
-    merge_dir_conf,                  /* merge  per-dir    config structures */
-    NULL,                  /* create per-server config structures */
-    NULL,                  /* merge  per-server config structures */
-    tcpfingerprint_cmds,                  /* table of config file commands       */
-    tcpfingerprint_register_hooks  /* register hooks                      */
+    create_dir_conf,                    /* create per-dir    config structures */
+    merge_dir_conf,                     /* merge  per-dir    config structures */
+    NULL,                               /* create per-server config structures */
+    NULL,                               /* merge  per-server config structures */
+    tcpfingerprint_cmds,                /* table of config file commands       */
+    tcpfingerprint_register_hooks       /* register hooks                      */
 };
 
 
