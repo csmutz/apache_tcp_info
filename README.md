@@ -39,8 +39,8 @@ Timestamp
  - connection accept time - FINGERPRINT_ACCEPT_TIME
 
 Full Structures
- - SYN Packet
- - TCP_INFO
+ - SYN Packet - FINGERPRINT_SAVED_SYN
+ - TCP_INFO - FINGERPRINT_ACCEPT_TIME
 
 ### Tasks
 
