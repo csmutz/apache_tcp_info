@@ -1,7 +1,17 @@
 # mod_tcpfingerprint
 Create a module that retrieves connection tcp fingerprinting from kernel, makes available for logging and environment variables for scripts.
 
-In the future, protentially have database for known fingerprints, especially devices like IoT devcies/SOHO routers/etc commonly used for proxies in residential proxies.
+When available, integrate database for known fingerprints, especially devices like IoT devcies/SOHO routers/etc commonly used for proxies in residential proxies.
+
+## Usage
+
+This module should be ready for use, at least testing. To use this module, compile and install.
+
+Then either add to LogFormat defintion or turn TCPFingerprintEnvVars on and use in cgi scripts.
+
+```
+LogFormat ... %{FINGERPRINT_TCP_RTT}g %{FINGERPRINT_IP_TTL}g %{FINGERPRINT_TCP_WSIZE}g %{FINGERPRINT_TCP_WSCALE}g %{FINGERPRINT_TCP_OPTIONS}g %{FINGERPRINT_TCP_MSS}g"
+```
 
 ## Attributes
 
