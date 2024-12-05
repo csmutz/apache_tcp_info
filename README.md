@@ -3,6 +3,8 @@ Create a module that retrieves connection tcp fingerprinting data from kernel, m
 
 In the future, integrate database for known fingerprints whenever a solid database becomes available.
 
+Possibly collect TCP_INFO at request time (instead of at start of connection) for meaningful collection of other TCP_INFO attributes. This might be better accomplished in a separate module that uses netlink to get TCP_INFO.
+
 ## Usage
 
 This module should be ready for use, at least testing. To use this module, compile and install.
