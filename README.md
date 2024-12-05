@@ -1,7 +1,7 @@
 # mod_tcpfingerprint
-Create a module that retrieves connection tcp fingerprinting from kernel, makes available for logging and environment variables for scripts.
+Create a module that retrieves connection tcp fingerprinting data from kernel, makes available for logging and environment variables for scripts.
 
-When available, integrate database for known fingerprints, especially devices like IoT devcies/SOHO routers/etc commonly used for proxies in residential proxies.
+In the future, integrate database for known fingerprints whenever a solid database becomes available.
 
 ## Usage
 
