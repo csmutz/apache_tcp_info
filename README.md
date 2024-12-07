@@ -1,11 +1,7 @@
 # mod_tcpfingerprint
-Create a module that retrieves connection tcp fingerprinting data from kernel (SAVED_SYN and TCP_INFO) and makes it available for logging and environment variables for scripts.
+A module that retrieves connection tcp fingerprinting data from kernel (SAVED_SYN and TCP_INFO) and makes it available for logging and environment variables for scripts.
 
-In the future, possibly integrate database for known fingerprints whenever a solid database becomes available.
-
-Possibly collect TCP_INFO at request time (instead of at start of connection) for meaningful collection of other TCP_INFO attributes. This might be better accomplished in a separate module that uses netlink to get TCP_INFO.
-
-## Usage
+## Installation/Usage
 
 This module should be ready for use, at least testing. To use this module, compile and install.
 
@@ -87,6 +83,12 @@ Full Structures
      - Whatever database becomes available
      - p0f -- database is out of date and code hasn't been updated but it would be easy to implement
      - yara
+
+### Future Work
+
+In the future, possibly integrate database for known fingerprints whenever a solid database becomes available.
+
+Possibly collect TCP_INFO at request time (instead of at start of connection) for meaningful collection of other TCP_INFO attributes. This might be better accomplished in a separate module that uses netlink to get TCP_INFO.
  
 ### References:
 
