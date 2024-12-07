@@ -1,9 +1,12 @@
 # mod_tcpfingerprint
+
 A module that retrieves connection tcp fingerprinting data from kernel (SAVED_SYN and TCP_INFO) and makes it available for logging and environment variables for scripts.
+
+This module should be ready testing for broader use.
 
 ## Installation/Usage
 
-This module should be ready for use, at least testing. To use this module, compile and install.
+To use this module, compile and install.
 
 ```
 sudo apxs2 -iac mod_tcpfingerprint.c
