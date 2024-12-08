@@ -6,9 +6,9 @@ This module should be ready testing for broader use.
 
 ## Progress
 
-The TCP Fingerprinting parts of this module (from SAVED_SYN) appear to work excellently.
+The TCP Fingerprinting parts of this module (from SAVED_SYN) appear to work as expected.
 
-The timing parts (RTT) correctly report RTT from kernel but this currently only covers payload RTT (not handshake RTT). This distinction is important for L4/SOCKS-style proxies. Still need to get faithful Handshake RTT.
+The timing parts (RTT) correctly report RTT from TCP_INFO but this currently only covers payload RTT (not handshake RTT). This distinction is important for L4/SOCKS-style proxies. Still need to get faithful Handshake RTT.
 
 ## Installation/Usage
 
