@@ -4,6 +4,12 @@ A module that retrieves connection tcp fingerprinting data from kernel (SAVED_SY
 
 This module should be ready testing for broader use.
 
+## Progress
+
+The TCP Fingerprinting parts of this module (from SAVED_SYN) appear to work excellently.
+
+The timing parts (RTT) correctly report RTT from kernel but this currently only covers payload RTT (not handshake RTT). This distinction is important for L4/SOCKS-style proxies. Still need to get faithful Handshake RTT.
+
 ## Installation/Usage
 
 To use this module, compile and install.
@@ -58,6 +64,11 @@ Full Structures
  - ~~Fix debug/error message (many current errors should be deleted or changed to debug)~~
  - ~~Implement TCP connection timestamp to compare to TLS Hello timestamp for hello_delay calculation~~
  - ~~Look for additional features in TCP_INFO for inclusion~~
+ - Get TCP Hanshake RTT
+   - Try min_rtt from extended linux attributes -- doesn't appear to work, is same as rtt
+   - Try tcpi_rcv_rtt -- what does this mean, does it require timestamps by client?
+   - Try delta between last_data_recv and last_ack_recv--this doesn't work because most data packets also include ACK so we cant get time of ACK at end of TCP handshake
+   - Try implementing collection of timestamp at ap_hook_create_connection hook--see if timestamp is actually end of TCP handshake
  - Configurations
    - Per Listener
      - **(NOT VALUABLE)** Configure which listeners should have SAVE_SYN set (causes kernel to collect SYN for all connections, this is fairly efficient and is disabled in SYN floods by SYN cookie protections, etc--cost is pretty low)
