@@ -66,7 +66,7 @@ Full Structures
  - ~~Look for additional features in TCP_INFO for inclusion~~
  - Get TCP Hanshake RTT
    - Try min_rtt from extended linux attributes -- doesn't appear to work, is same as rtt
-   - Try tcpi_rcv_rtt -- what does this mean, does it require timestamps by client?
+   - Try tcpi_rcv_rtt -- what does this mean, does it require timestamps by client. Doesn't appear to be set at start of connection regardless.
    - Try delta between last_data_recv and last_ack_recv--this doesn't work because most data packets also include ACK so we cant get time of ACK at end of TCP handshake
    - Try implementing collection of timestamp at ap_hook_create_connection hook--see if timestamp is actually end of TCP handshake
  - Configurations
