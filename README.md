@@ -64,11 +64,13 @@ Full Structures
  - ~~Fix debug/error message (many current errors should be deleted or changed to debug)~~
  - ~~Implement TCP connection timestamp to compare to TLS Hello timestamp for hello_delay calculation~~
  - ~~Look for additional features in TCP_INFO for inclusion~~
- - Get TCP Hanshake RTT
+ - Get TCP Hanshake RTT (or get timestamp of accept?)
    - Try min_rtt from extended linux attributes -- doesn't appear to work, is same as rtt
    - Try tcpi_rcv_rtt -- what does this mean, does it require timestamps by client. Doesn't appear to be set at start of connection regardless.
    - Try delta between last_data_recv and last_ack_recv--this doesn't work because most data packets also include ACK so we cant get time of ACK at end of TCP handshake
    - Try implementing collection of timestamp at ap_hook_create_connection hook--see if timestamp is actually end of TCP handshake
+     - This is called if done before core
+       - Check timestamp, make sure this actually reflects handshake RTT (vs. payload) 
  - Configurations
    - Per Listener
      - **(NOT VALUABLE)** Configure which listeners should have SAVE_SYN set (causes kernel to collect SYN for all connections, this is fairly efficient and is disabled in SYN floods by SYN cookie protections, etc--cost is pretty low)
