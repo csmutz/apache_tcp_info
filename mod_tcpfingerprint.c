@@ -29,6 +29,8 @@
 #include <netinet/ip6.h>
 #include <netinet/tcp.h>
 
+#include <unistd.h>
+
 #define strcEQ(s1,s2)    (strcasecmp(s1,s2) == 0)
 #define strIsEmpty(s)    (s == NULL || s[0] == '\0')
 
@@ -42,9 +44,21 @@ static const char *const fingerprint_vars[] =
     "FINGERPRINT_TCP_WSIZE",
     "FINGERPRINT_TCP_WSCALE",
     "FINGERPRINT_TCP_MSS",
-    "FINGERPRINT_TCP_RTT",
     "FINGERPRINT_TCP_ECN",
     "FINGERPRINT_TCP_OPTIONS",
+
+    "FINGERPRINT_TCP_SNDWND",
+    "FINGERPRINT_TCP_RCVWND",
+    "FINGERPRINT_TCP_RTT",
+    "FINGERPRINT_TCP_MINRTT",
+    "FINGERPRINT_TCP_RCVRTT",
+    "FINGERPRINT_TCP_LASTDATARECV",
+    "FINGERPRINT_TCP_LASTACKRECV",
+    "FINGERPRINT_TCP_SNDMSS",
+    "FINGERPRINT_TCP_RCVMSS",
+    "FINGERPRINT_TCP_ADVMSS",
+    "FINGERPRINT_TCP_PMTU",
+
     "FINGERPRINT_ACCEPT_TIME",
     NULL
 };
@@ -72,13 +86,107 @@ typedef struct
 } fingerprint_dir_conf_t;
 
 
+typedef struct {
+	uint8_t	tcpi_state;
+	uint8_t	tcpi_ca_state;
+	uint8_t	tcpi_retransmits;
+	uint8_t	tcpi_probes;
+	uint8_t	tcpi_backoff;
+	uint8_t	tcpi_options;
+	uint8_t	tcpi_snd_wscale : 4, tcpi_rcv_wscale : 4;
+	uint8_t	tcpi_delivery_rate_app_limited:1, tcpi_fastopen_client_fail:2;
+
+	uint32_t	tcpi_rto;
+	uint32_t	tcpi_ato;
+	uint32_t	tcpi_snd_mss;
+	uint32_t	tcpi_rcv_mss;
+
+	uint32_t	tcpi_unacked;
+	uint32_t	tcpi_sacked;
+	uint32_t	tcpi_lost;
+	uint32_t	tcpi_retrans;
+	uint32_t	tcpi_fackets;
+
+	/* Times. */
+	uint32_t	tcpi_last_data_sent;
+	uint32_t	tcpi_last_ack_sent;     /* Not remembered, sorry. */
+	uint32_t	tcpi_last_data_recv;
+	uint32_t	tcpi_last_ack_recv;
+
+	/* Metrics. */
+	uint32_t	tcpi_pmtu;
+	uint32_t	tcpi_rcv_ssthresh;
+	uint32_t	tcpi_rtt;
+	uint32_t	tcpi_rttvar;
+	uint32_t	tcpi_snd_ssthresh;
+	uint32_t	tcpi_snd_cwnd;
+	uint32_t	tcpi_advmss;
+	uint32_t	tcpi_reordering;
+
+	uint32_t	tcpi_rcv_rtt;
+	uint32_t	tcpi_rcv_space;
+
+	uint32_t	tcpi_total_retrans;
+
+	uint64_t	tcpi_pacing_rate;
+	uint64_t	tcpi_max_pacing_rate;
+	uint64_t	tcpi_bytes_acked;    /* RFC4898 tcpEStatsAppHCThruOctetsAcked */
+	uint64_t	tcpi_bytes_received; /* RFC4898 tcpEStatsAppHCThruOctetsReceived */
+	uint32_t	tcpi_segs_out;	     /* RFC4898 tcpEStatsPerfSegsOut */
+	uint32_t	tcpi_segs_in;	     /* RFC4898 tcpEStatsPerfSegsIn */
+
+	uint32_t	tcpi_notsent_bytes;
+	uint32_t	tcpi_min_rtt;
+	uint32_t	tcpi_data_segs_in;	/* RFC4898 tcpEStatsDataSegsIn */
+	uint32_t	tcpi_data_segs_out;	/* RFC4898 tcpEStatsDataSegsOut */
+
+	uint64_t   tcpi_delivery_rate;
+
+	uint64_t	tcpi_busy_time;      /* Time (usec) busy sending data */
+	uint64_t	tcpi_rwnd_limited;   /* Time (usec) limited by receive window */
+	uint64_t	tcpi_sndbuf_limited; /* Time (usec) limited by send buffer */
+
+	uint32_t	tcpi_delivered;
+	uint32_t	tcpi_delivered_ce;
+
+	uint64_t	tcpi_bytes_sent;     /* RFC4898 tcpEStatsPerfHCDataOctetsOut */
+	uint64_t	tcpi_bytes_retrans;  /* RFC4898 tcpEStatsPerfOctetsRetrans */
+	uint32_t	tcpi_dsack_dups;     /* RFC4898 tcpEStatsStackDSACKDups */
+	uint32_t	tcpi_reord_seen;     /* reordering events seen */
+
+	uint32_t	tcpi_rcv_ooopack;    /* Out-of-order packets received */
+
+	uint32_t	tcpi_snd_wnd;	     /* peer's advertised receive window after
+				      * scaling (bytes)
+				      */
+	uint32_t	tcpi_rcv_wnd;	     /* local advertised receive window after
+				      * scaling (bytes)
+				      */
+
+	uint32_t   tcpi_rehash;         /* PLB or timeout triggered rehash attempts */
+
+	uint16_t	tcpi_total_rto;	/* Total number of RTO timeouts, including
+				 * SYN/SYN-ACK and recurring timeouts.
+				 */
+	uint16_t	tcpi_total_rto_recoveries;	/* Total number of RTO
+						 * recoveries, including any
+						 * unfinished recovery.
+						 */
+	uint32_t	tcpi_total_rto_time;	/* Total time spent in RTO recoveries
+					 * in milliseconds, including any
+					 * unfinished recovery.
+					 */
+} tcp_info_t;
+
 typedef struct
 {
-    const struct tcp_info *tcp_info;
+    //const struct tcp_info *tcp_info;
+    tcp_info_t *tcp_info;
     int tcp_info_len;
     syn_packet_t *saved_syn;
     apr_time_t accept_ts;
 } fingerprint_conn_data_t;
+
 
 
 static int parse_pkt(request_rec *r, syn_packet_t *syn)
@@ -157,8 +265,29 @@ static char *fingerprint_var_tcpinfo(fingerprint_conn_data_t *data, request_rec 
     char *value = NULL;
     if (data->tcp_info)
     {
+        //TODO: check length of tcp_info to make sure values are included?
         if (strcEQ(var, "FINGERPRINT_TCP_RTT"))
             return (char *)apr_psprintf(r->pool, "%lu", (unsigned long) data->tcp_info->tcpi_rtt);
+        if (strcEQ(var, "FINGERPRINT_TCP_MINRTT"))
+            return (char *)apr_psprintf(r->pool, "%lu", (unsigned long) data->tcp_info->tcpi_min_rtt);
+        if (strcEQ(var, "FINGERPRINT_TCP_RCVRTT"))
+            return (char *)apr_psprintf(r->pool, "%lu", (unsigned long) data->tcp_info->tcpi_rcv_rtt);
+        if (strcEQ(var, "FINGERPRINT_TCP_SNDWND"))
+            return (char *)apr_psprintf(r->pool, "%lu", (unsigned long) data->tcp_info->tcpi_snd_wnd);
+        if (strcEQ(var, "FINGERPRINT_TCP_RCVWND"))
+            return (char *)apr_psprintf(r->pool, "%lu", (unsigned long) data->tcp_info->tcpi_rcv_wnd);
+        if (strcEQ(var, "FINGERPRINT_TCP_LASTDATARECV"))
+            return (char *)apr_psprintf(r->pool, "%lu", (unsigned long) data->tcp_info->tcpi_last_data_recv * 1000000 / sysconf(_SC_CLK_TCK)); 
+        if (strcEQ(var, "FINGERPRINT_TCP_LASTACKRECV"))
+            return (char *)apr_psprintf(r->pool, "%lu", (unsigned long) data->tcp_info->tcpi_last_ack_recv * 1000000 / sysconf(_SC_CLK_TCK));
+        if (strcEQ(var, "FINGERPRINT_TCP_SNDMSS"))
+            return (char *)apr_psprintf(r->pool, "%lu", (unsigned long) data->tcp_info->tcpi_snd_mss);
+        if (strcEQ(var, "FINGERPRINT_TCP_RCVMSS"))
+            return (char *)apr_psprintf(r->pool, "%lu", (unsigned long) data->tcp_info->tcpi_rcv_mss);
+        if (strcEQ(var, "FINGERPRINT_TCP_ADVMSS"))
+            return (char *)apr_psprintf(r->pool, "%lu", (unsigned long) data->tcp_info->tcpi_advmss);
+        if (strcEQ(var, "FINGERPRINT_TCP_PMTU"))
+            return (char *)apr_psprintf(r->pool, "%lu", (unsigned long) data->tcp_info->tcpi_pmtu);
         if (strcEQ(var, "FINGERPRINT_TCP_INFO"))
         {
             value = apr_palloc(r->pool, data->tcp_info_len * 2 + 1);
@@ -298,8 +427,6 @@ static char *fingerprint_var(request_rec *r, char *var)
 
     data = (fingerprint_conn_data_t *) ap_get_module_config(c->conn_config, &tcpfingerprint_module);
 
-    if (strcEQ(var, "FINGERPRINT_TCP_RTT"))
-        return fingerprint_var_tcpinfo(data, r, var);
     if (strcEQ(var, "FINGERPRINT_TCP_INFO"))
         return fingerprint_var_tcpinfo(data, r, var);
     if (strcEQ(var, "FINGERPRINT_TCP_WSIZE"))
@@ -316,6 +443,29 @@ static char *fingerprint_var(request_rec *r, char *var)
         return fingerprint_var_syn(data, r, var);
     if (strcEQ(var, "FINGERPRINT_IP_ECN"))
         return fingerprint_var_syn(data, r, var);
+
+    if (strcEQ(var, "FINGERPRINT_TCP_RTT"))
+        return fingerprint_var_tcpinfo(data, r, var);
+    if (strcEQ(var, "FINGERPRINT_TCP_MINRTT"))
+        return fingerprint_var_tcpinfo(data, r, var);
+    if (strcEQ(var, "FINGERPRINT_TCP_RCVRTT"))
+        return fingerprint_var_tcpinfo(data, r, var);
+    if (strcEQ(var, "FINGERPRINT_TCP_SNDWND"))
+        return fingerprint_var_tcpinfo(data, r, var);
+    if (strcEQ(var, "FINGERPRINT_TCP_RCVWND"))
+        return fingerprint_var_tcpinfo(data, r, var);
+    if (strcEQ(var, "FINGERPRINT_TCP_LASTDATARECV"))
+        return fingerprint_var_tcpinfo(data, r, var);
+    if (strcEQ(var, "FINGERPRINT_TCP_LASTACKRECV"))
+        return fingerprint_var_tcpinfo(data, r, var);
+    if (strcEQ(var, "FINGERPRINT_TCP_SNDMSS"))
+        return fingerprint_var_tcpinfo(data, r, var);
+    if (strcEQ(var, "FINGERPRINT_TCP_RCVMSS"))
+        return fingerprint_var_tcpinfo(data, r, var);
+    if (strcEQ(var, "FINGERPRINT_TCP_ADVMSS"))
+        return fingerprint_var_tcpinfo(data, r, var);
+    if (strcEQ(var, "FINGERPRINT_TCP_PMTU"))
+        return fingerprint_var_tcpinfo(data, r, var);
 
     if (strcEQ(var, "FINGERPRINT_SAVED_SYN"))
     {
@@ -392,10 +542,26 @@ static int fingerprint_post_config(apr_pool_t *pconf, apr_pool_t *plog, apr_pool
 }
 
 
+static conn_rec *fingerprint_create_connection(apr_pool_t *p, server_rec *server,
+                                     apr_socket_t *csd, long conn_id,
+                                     void *sbh, apr_bucket_alloc_t *alloc)
+{
+    conn_rec *c = NULL;
+    
+    ap_log_error(APLOG_MARK, APLOG_ERR, 0, server, "create_connection callback");
+    ap_log_error(APLOG_MARK, APLOG_ERR, 0, server, "%ld", conn_id);
+    return c;
+}
+
+
 static int fingerprint_pre_connection(conn_rec *c, void *csd)
 {
+    ap_log_error(APLOG_MARK, APLOG_ERR, 0, c->base_server, "pre_connection callback");
+    ap_log_error(APLOG_MARK, APLOG_ERR, 0, c->base_server, "%ld", c->id);
+
     fingerprint_conn_data_t *data = NULL;
-    struct tcp_info ti;
+    //struct tcp_info ti;
+    tcp_info_t ti;
     int ti_length = 0;
     int res = 0;
     apr_status_t stat = 0;
@@ -519,10 +685,13 @@ static int fingerprint_fixups(request_rec* r)
 static void tcpfingerprint_register_hooks(apr_pool_t *p)
 {
     //ap_hook_handler(tcpfingerprint_handler, NULL, NULL, APR_HOOK_MIDDLE);
+
+    //static const char * const pre[] = { "core.c", NULL };
+    ap_hook_create_connection(fingerprint_create_connection, NULL, NULL, APR_HOOK_MIDDLE);
     ap_hook_pre_config(fingerprint_pre_config, NULL, NULL, APR_HOOK_MIDDLE);
     ap_hook_post_config(fingerprint_post_config, NULL, NULL, APR_HOOK_LAST);
     ap_hook_pre_connection(fingerprint_pre_connection, NULL, NULL, APR_HOOK_FIRST);
-    ap_hook_fixups(fingerprint_fixups, NULL, NULL, APR_HOOK_REALLY_FIRST);
+    ap_hook_fixups(fingerprint_fixups, NULL, NULL, APR_HOOK_FIRST);
 }
 
 
