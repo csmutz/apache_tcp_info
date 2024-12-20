@@ -77,7 +77,7 @@ Full Structures
        - Current/default behavior is to cause kernel to collect SAVED_SYN for all connections, this is fairly efficient and is disabled in SYN floods by SYN cookie protections, etc--cost is pretty low
        - This would be similar to Listen or ListenBackLog--but ListenBackLog are available in global scope only
          - There is no per Listener configuration tracking like there is for server and directory configuration
-       - Maybe list of IPs/ports which should have SAVE_SYN applied (or not applied) like Listen
+       - Maybe list of IPs/ports which should have SAVE_SYN applied (or not applied) like Listen, something like TCPFingerprintSaveSYNExclude with same params as Listen.
          - This would be possible, but is a lot of parsing comparison code for relatively little benefit and would require testing all sorts of edge cases
        - Is there a way to get listen record from server config? Maybe set that way instead of global config?
        
