@@ -73,20 +73,24 @@ Full Structures
        - Check timestamp, make sure this actually reflects handshake RTT (vs. payload)--it doesn't, this doesn't work--it's comparable to the pre_connection hook--need to find an earlier hook?
  - Configurations
    - Per Listener
-     - **(Difficult)** Configure which listeners should have SAVE_SYN set (causes kernel to collect SYN for all connections, this is fairly efficient and is disabled in SYN floods by SYN cookie protections, etc--cost is pretty low)
-       - This would be similar to ListenBackLog--but ListenBackLog and their ilk appear to apply globally--not per Listen (this would also require mods to core httpd)
-       - Maybe list of IPs/ports which should have SAVE_SYN applied (or not applied)?
+     - **(Too complicated to be worthwhile)** Configure which listeners should have SAVE_SYN set
+       - Current/default behavior is to cause kernel to collect SAVED_SYN for all connections, this is fairly efficient and is disabled in SYN floods by SYN cookie protections, etc--cost is pretty low
+       - This would be similar to Listen or ListenBackLog--but ListenBackLog are available in global scope only
+         - There is no per Listener configuration tracking like there is for server and directory configuration
+       - Maybe list of IPs/ports which should have SAVE_SYN applied (or not applied) like Listen
+         - This would be possible, but is a lot of parsing comparison code for relatively little benefit and would require testing all sorts of edge cases
        - Is there a way to get listen record from server config? Maybe set that way instead of global config?
        
    - Per Connection
-     - Determine if SAVED_SYN and TCP_INFO should be retrieved for the current connection. (this is moderately expensive, copies ~300 bytes of data to connection)
-       - Currently this is prior to reception of data on port, prior to knowledge of SNI or HTTP virtualhost, so most selectors aren't available.
-         - If this was delayed until later, could select upon virtualhost
-         - This will be server only config, TCPFingerprintGetSavedSYN, TCPFingerprintGetTCPInfo which will default to on
+     - ~~Determine if SAVED_SYN and TCP_INFO should be retrieved for the current connection. (this is moderately expensive, copies ~300 bytes of data to connection)~~
+       - ~~Currently this is prior to reception of data on port, prior to knowledge of SNI or HTTP virtualhost, so most selectors aren't available.~~
+         - ~~If this was delayed until later, could select upon virtualhost~~
+     - Done: TCPFingerprintGetSavedSYN, TCPFingerprintGetTCPInfo which will default to on and are server only in scope
    - Per Request
      - ~~Enable export of environment variables--like STDENVVARS.~~   Done: TCPFingerprintEnvVars
      - ~~Enable full SYN printing (hex encoded), this is typically about 60 bytes/120 hex chars~~ Done: TCPFingerprintEnvSavedSYN
      - ~~Enable full TCP_INFO printing (hex encoded)~~ Done: TCPFingerprintEnvTCPInfo
+       - Are these, should these be server/vhost compatable also?
       - **(PUNT FOR NOW)** TCP_INFO could be retrieved later (possibly per request) to collect other data like max observed packet size and RTT based on more data
          - Getting SAVED_SYN and TCP_INFO currently requires putting socket in blocking mode--is this safe to do later?
            - Is this safe to do at start of connection?
