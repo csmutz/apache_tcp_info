@@ -73,14 +73,16 @@ Full Structures
        - Check timestamp, make sure this actually reflects handshake RTT (vs. payload)--it doesn't, this doesn't work--it's comparable to the pre_connection hook--need to find an earlier hook?
  - Configurations
    - Per Listener
-     - **(NOT VALUABLE)** Configure which listeners should have SAVE_SYN set (causes kernel to collect SYN for all connections, this is fairly efficient and is disabled in SYN floods by SYN cookie protections, etc--cost is pretty low)
+     - Configure which listeners should have SAVE_SYN set (causes kernel to collect SYN for all connections, this is fairly efficient and is disabled in SYN floods by SYN cookie protections, etc--cost is pretty low)
        - This would be similar to ListenBackLog--but ListenBackLog and their ilk appear to apply globally--not per Listen (this would also require mods to core httpd)
        - Maybe list of IPs/ports which should have SAVE_SYN applied?
-       - It's hard to understand use case for this
+       - TCPFingerprintKernelSaveSYN which will default to on
+       
    - Per Connection
-     - **(NOT FEASIBLE)** Determine if SAVED_SYN and TCP_INFO should be retrieved for the current connection. (this is moderately expensive, copies ~300 bytes of data to connection)
+     - Determine if SAVED_SYN and TCP_INFO should be retrieved for the current connection. (this is moderately expensive, copies ~300 bytes of data to connection)
        - Currently this is prior to reception of data on port, prior to knowledge of SNI or HTTP virtualhost, so most selectors aren't available.
          - If this was delayed until later, could select upon virtualhost
+         - This will be server only config, TCPFingerprintGetSavedSYN, TCPFingerprintGetTCPInfo which will default to on
    - Per Request
      - ~~Enable export of environment variables--like STDENVVARS.~~   Done: TCPFingerprintEnvVars
      - ~~Enable full SYN printing (hex encoded), this is typically about 60 bytes/120 hex chars~~ Done: TCPFingerprintEnvSavedSYN
