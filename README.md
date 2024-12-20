@@ -73,10 +73,10 @@ Full Structures
        - Check timestamp, make sure this actually reflects handshake RTT (vs. payload)--it doesn't, this doesn't work--it's comparable to the pre_connection hook--need to find an earlier hook?
  - Configurations
    - Per Listener
-     - Configure which listeners should have SAVE_SYN set (causes kernel to collect SYN for all connections, this is fairly efficient and is disabled in SYN floods by SYN cookie protections, etc--cost is pretty low)
+     - **(Difficult)** Configure which listeners should have SAVE_SYN set (causes kernel to collect SYN for all connections, this is fairly efficient and is disabled in SYN floods by SYN cookie protections, etc--cost is pretty low)
        - This would be similar to ListenBackLog--but ListenBackLog and their ilk appear to apply globally--not per Listen (this would also require mods to core httpd)
-       - Maybe list of IPs/ports which should have SAVE_SYN applied?
-       - TCPFingerprintKernelSaveSYN which will default to on
+       - Maybe list of IPs/ports which should have SAVE_SYN applied (or not applied)?
+       - Is there a way to get listen record from server config? Maybe set that way instead of global config?
        
    - Per Connection
      - Determine if SAVED_SYN and TCP_INFO should be retrieved for the current connection. (this is moderately expensive, copies ~300 bytes of data to connection)
