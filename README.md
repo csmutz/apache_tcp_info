@@ -43,10 +43,11 @@ SAVED_SYN
  - TCP ECN - FINGERPRINT_TCP_ECN
 
 Timestamp
- - connection accept time - FINGERPRINT_ACCEPT_TIME
+ - connection accept time - ~~FINGERPRINT_ACCEPT_TIME~~
+   - Not currently implement, unable to get actuall accept time using existing hooks
 
 Full Structures
- - SYN Packet - FINGERPRINT_SAVED_SYN
+ - SAVED_SYN - FINGERPRINT_SAVED_SYN
  - TCP_INFO - FINGERPRINT_TCP_INFO
 
 ### Tasks
