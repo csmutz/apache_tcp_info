@@ -2,13 +2,13 @@
 
 A module that retrieves connection tcp fingerprinting data from kernel (SAVED_SYN and TCP_INFO) and makes it available for logging and environment variables for scripts.
 
-This module should be ready testing for broader use.
+This module should be ready testing, broader use.
 
 ## Progress
 
 The TCP Fingerprinting parts of this module (from SAVED_SYN) appear to work as expected.
 
-The timing parts (RTT) correctly report RTT from TCP_INFO but this currently only covers payload RTT (not handshake RTT). This distinction is important for L4/SOCKS-style proxies. Still expiramenting with options to get Handshake RTT.
+The timing parts (RTT) correctly report RTT from TCP_INFO but this currently only covers payload RTT (not handshake RTT). This distinction is important for L4/SOCKS-style proxies. This could be approximated by capturing the timestamp when the accept() occurs reporting the delta of that time and the current connection processing time (which is when the first client data segment is recieved). Ideally, we would have measurement of time between SYN-ACK and ACK packets.
 
 ## Installation/Usage
 
@@ -72,6 +72,7 @@ Full Structures
    - ~~Try implementing collection of timestamp at ap_hook_create_connection hook~~--see if timestamp is actually end of TCP handshake
      - This is called if done before core
        - Check timestamp, make sure this actually reflects handshake RTT (vs. payload)--it doesn't, this doesn't work--it's comparable to the pre_connection hook--need to find an earlier hook?
+   - Potentially override accept_function in ap_listen_rec?
  - Configurations
    - Per Listener
      - **(Too complicated, not sure what's really wanted)** Configure which listeners should have SAVE_SYN set
