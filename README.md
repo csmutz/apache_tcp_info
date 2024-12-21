@@ -73,10 +73,11 @@ Full Structures
        - Check timestamp, make sure this actually reflects handshake RTT (vs. payload)--it doesn't, this doesn't work--it's comparable to the pre_connection hook--need to find an earlier hook?
  - Configurations
    - Per Listener
-     - **(Too complicated to be worthwhile)** Configure which listeners should have SAVE_SYN set
-       - Current/default behavior is to cause kernel to collect SAVED_SYN for all connections, this is fairly efficient and is disabled in SYN floods by SYN cookie protections, etc--cost is pretty low
-       - This would be similar to Listen or ListenBackLog--but ListenBackLog are available in global scope only
-         - There is no per Listener configuration tracking like there is for server and directory configuration
+     - **(Too complicated, not sure what's really wanted)** Configure which listeners should have SAVE_SYN set
+       - Current/default behavior is to cause kernel to collect SAVED_SYN for all connections
+         - This kernel mechanism is fairly efficient and is disabled in SYN floods by SYN cookie protections, etc--so cost is pretty low
+       - Directive would be similar to Listen or ListenBackLog--but ListenBackLog are available in global scope only
+         - There is no per Listener configuration tracking like there is for server and directory configuration, so this is pretty difficult
        - Maybe list of IPs/ports which should have SAVE_SYN applied (or not applied) like Listen, something like TCPFingerprintSaveSYNExclude with same params as Listen.
          - This would be possible, but is a lot of parsing comparison code for relatively little benefit and would require testing all sorts of edge cases
        - Is there a way to get listen record from server config? Maybe set that way instead of global config?
