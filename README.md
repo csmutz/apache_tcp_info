@@ -2,13 +2,25 @@
 
 A module that retrieves connection tcp fingerprinting data from kernel (SAVED_SYN and TCP_INFO) and makes it available for logging and environment variables for scripts.
 
+This module will instruct the kernel on to SAVE_SYN on all connections.
+
 This module should be ready testing, broader use.
 
 ## Progress
 
-The TCP Fingerprinting parts of this module (from SAVED_SYN) appear to work as expected.
+The TCP Fingerprinting parts of this module (from SAVED_SYN) work as expected.
 
-The timing parts (RTT) correctly report RTT from TCP_INFO but this currently only covers payload RTT (not handshake RTT). This distinction is important for L4/SOCKS-style proxies. This could be approximated by capturing the timestamp when the accept() occurs reporting the delta of that time and the current connection processing time (which is when the first client data segment is recieved). Ideally, we would have measurement of time between SYN-ACK and ACK packets.
+The timing parts (RTT) correctly report RTT from TCP_INFO but this currently only covers payload RTT (not handshake RTT). Getting TCP handshake RTT is future work.
+
+### Potential Future Work
+
+Implement TCP handshake RTT calculation. RFC on methods for doing so or getting accurate connection accept timestamp from module.
+
+Integrate database for known fingerprints whenever a solid database becomes available.
+
+Possibly collect TCP_INFO at request time (instead of at start of connection) for meaningful collection of other TCP_INFO attributes. This might be better accomplished in a separate module that uses netlink to get TCP_INFO.
+
+Configuration directive to configure SAVE_SYN on a per Listen basis. RFC on what this should look like.
 
 ## Installation/Usage
 
@@ -23,6 +35,20 @@ Then either add to LogFormat defintion or turn TCPFingerprintEnvVars on and use 
 ```
 LogFormat ... %{FINGERPRINT_TCP_RTT}g %{FINGERPRINT_IP_TTL}g %{FINGERPRINT_TCP_WSIZE}g %{FINGERPRINT_TCP_WSCALE}g %{FINGERPRINT_TCP_OPTIONS}g %{FINGERPRINT_TCP_MSS}g"
 ```
+
+## Configuration Directives
+
+This module registers "g" for LogFormat directives. Ex. ```%{FINGERPRINT_TCP_OPTIONS}g```
+
+Server Directives (connection level):
+  - TCPFingerprintGetSavedSYN: Enable collection of SAVED_SYN from kernel using getsockopt, default on
+  - TCPFingerprintGetTCPInfo: Enable collection of TCP_INFO from kernel using getsockopt, default on
+
+Directory Directives (request level):
+
+  - TCPFingerprintEnvVars: Enable creation of CGI environment variables, default off (similar to StdEnvVars of for modssl)
+  - TCPFingerprintEnvTCPInfo: Enable dump of raw TCP_INFO in environment variables, default off
+  - TCPFingerprintEnvSavedSYN: Enable dump of raw SAVED_SYN in environment variables, default off
 
 ## Attributes
 
@@ -109,12 +135,6 @@ Full Structures
      - p0f -- database is out of date and code hasn't been updated but it would be easy to implement
      - yara
 
-### Future Work
-
-In the future, possibly integrate database for known fingerprints whenever a solid database becomes available.
-
-Possibly collect TCP_INFO at request time (instead of at start of connection) for meaningful collection of other TCP_INFO attributes. This might be better accomplished in a separate module that uses netlink to get TCP_INFO.
- 
 ### References:
 
 #### netlink
