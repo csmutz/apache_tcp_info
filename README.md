@@ -4,9 +4,9 @@ A module that retrieves connection tcp fingerprinting data from kernel (SAVED_SY
 
 This module will instruct the kernel to SAVE_SYN on all apache Listen sockets (all incoming connections).
 
-This module should be ready testing, broader use.
-
 ## Progress
+
+This module should be ready testing, broader use.
 
 The TCP Fingerprinting parts of this module (from SAVED_SYN) work as expected.
 
