@@ -14,7 +14,7 @@ The timing parts (RTT) correctly report RTT from TCP_INFO but this currently onl
 
 ### Potential Future Work
 
-Implement TCP handshake RTT calculation. RFC on methods for doing so or getting accurate connection accept timestamp from module.
+Implement TCP handshake RTT calculation. RFC on methods for getting handshake RTT (delta between SYN and first ACK) or accurate connection establishment timestamp from module.
 
 Integrate database for known fingerprints whenever a solid database becomes available.
 
