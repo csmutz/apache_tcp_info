@@ -2,7 +2,7 @@
 
 A module that retrieves connection tcp fingerprinting data from kernel (SAVED_SYN and TCP_INFO) and makes it available for logging and environment variables for scripts.
 
-This module will instruct the kernel on to SAVE_SYN on all connections.
+This module will instruct the kernel to SAVE_SYN on all apache Listen sockets (all incoming connections).
 
 This module should be ready testing, broader use.
 
@@ -68,13 +68,13 @@ SAVED_SYN
    - Window Scale - FINGERPRINT_TCP_WSCALE
  - TCP ECN - FINGERPRINT_TCP_ECN
 
-Timestamp
- - connection accept time - ~~FINGERPRINT_ACCEPT_TIME~~
-   - Not currently implement, unable to get actuall accept time using existing hooks
-
 Full Structures
  - SAVED_SYN - FINGERPRINT_SAVED_SYN
  - TCP_INFO - FINGERPRINT_TCP_INFO
+
+Timestamp
+ - connection accept time - ~~FINGERPRINT_ACCEPT_TIME~~
+   - Not currently implement, unable to get actuall accept time using existing hooks
 
 ### Tasks
 
