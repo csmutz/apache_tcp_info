@@ -60,7 +60,7 @@ Full Structures
 
 Timestamp
  - connection accept time - ~~FINGERPRINT_ACCEPT_TIME~~
-   - Not currently implement, unable to get actuall accept time using existing hooks
+   - Not currently implemented, unable to get actual connection establishment time using existing hooks
 
 ### Potential Future Work
 
