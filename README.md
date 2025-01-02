@@ -54,7 +54,7 @@ SAVED_SYN
    - Window Scale - FINGERPRINT_TCP_WSCALE
  - TCP ECN - FINGERPRINT_TCP_ECN
 
-Full Structures
+Full Structures (hex encoded)
  - SAVED_SYN - FINGERPRINT_SAVED_SYN
  - TCP_INFO - FINGERPRINT_TCP_INFO
 
