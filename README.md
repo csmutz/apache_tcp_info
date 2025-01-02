@@ -6,21 +6,7 @@ This module will instruct the kernel to SAVE_SYN on all apache Listen sockets (a
 
 ## Progress
 
-This module should be ready testing, broader use.
-
-The TCP Fingerprinting parts of this module (from SAVED_SYN) work as expected.
-
-The timing parts (RTT) correctly report RTT from TCP_INFO but this currently only covers payload RTT (not handshake RTT). Getting TCP handshake RTT is future work.
-
-### Potential Future Work
-
-Implement TCP handshake RTT calculation. RFC on methods for getting handshake RTT (delta between SYN and first ACK) or accurate connection establishment timestamp from module.
-
-Integrate database for known fingerprints whenever a solid database becomes available.
-
-Possibly collect TCP_INFO at request time (instead of at start of connection) for meaningful collection of other TCP_INFO attributes. This might be better accomplished in a separate module that uses netlink to get TCP_INFO.
-
-Configuration directive to configure SAVE_SYN on a per Listen basis. RFC on what this should look like.
+This module should be ready for testing, broader use.
 
 ## Installation/Usage
 
@@ -75,6 +61,16 @@ Full Structures
 Timestamp
  - connection accept time - ~~FINGERPRINT_ACCEPT_TIME~~
    - Not currently implement, unable to get actuall accept time using existing hooks
+
+### Potential Future Work
+
+Implement TCP handshake RTT calculation. RFC on methods for getting handshake RTT (delta between SYN and first ACK) or accurate connection establishment timestamp from module.
+
+Integrate database for known fingerprints whenever a solid database becomes available.
+
+Possibly collect TCP_INFO at request time (instead of at start of connection) for meaningful collection of other TCP_INFO attributes. This might be better accomplished in a separate module that uses netlink to get TCP_INFO.
+
+Configuration directive to configure SAVE_SYN on a per Listen basis. RFC on what this should look like.
 
 ### Tasks
 
