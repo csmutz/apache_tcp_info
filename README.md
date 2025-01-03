@@ -1,8 +1,8 @@
 # mod_tcpfingerprint
 
-A module that retrieves connection tcp fingerprinting data from kernel (SAVED_SYN and TCP_INFO) and makes it available for logging and environment variables for scripts.
+A module that retrieves connection tcp fingerprinting data from the Linux kernel (SAVED_SYN and TCP_INFO) and makes it available for logging and environment variables for scripts. Since SAVE_SYN is Linux specific, this is Linux only.
 
-This module will instruct the kernel to SAVE_SYN on all apache Listen sockets (all incoming connections).
+This module will instruct the kernel to SAVE_SYN on all apache Listen sockets (all incoming connections). In some cases the kernel does not preserve SYN packets--ex. if a SYN flood causes SYN cookies to be used. 
 
 ## Progress
 
@@ -68,6 +68,8 @@ Implement TCP handshake RTT calculation. RFC on methods for getting handshake RT
 
 Integrate database for known fingerprints whenever a solid database becomes available.
 
+Possibly block connections based on database of likely compromised devices (ex. embedded linux as seen in compromised routers/IoT devices)
+
 Possibly collect TCP_INFO at request time (instead of at start of connection) for meaningful collection of other TCP_INFO attributes. This might be better accomplished in a separate module that uses netlink to get TCP_INFO.
 
 Configuration directive to configure SAVE_SYN on a per Listen basis. RFC on what this should look like.
@@ -120,9 +122,8 @@ Configuration directive to configure SAVE_SYN on a per Listen basis. RFC on what
          - Getting SAVED_SYN and TCP_INFO currently requires putting socket in blocking mode--is this safe to do later?
            - Is this safe to do at start of connection?
       - switch to netlink instead of getsockopt?
-        - see INET_DIAG_INFO message type
-      - If this was implemented, desired additional TCP_INFO attributes:
-        - tcpi_rcv_mss (max observed payload size)
+        - If this was implemented, desired additional TCP_INFO attributes:
+          - tcpi_rcv_mss (max observed payload size)
  - Database
    - Database of TCP fingerprints, especially SOHO router/IoT devices (right now an effective database does not exist)
    - Configuration for one database to create a label per client (env variable and logging attribute)
@@ -130,6 +131,7 @@ Configuration directive to configure SAVE_SYN on a per Listen basis. RFC on what
      - Whatever database becomes available
      - p0f -- database is out of date and code hasn't been updated but it would be easy to implement
      - yara
+   - Possibly use database to block unwanted connections
 
 ### References:
 
@@ -142,4 +144,10 @@ https://blog.mygraphql.com/en/notes/low-tec/network/tcp-inspect/#rationale---how
 #### Relevant Apache module development example
 
 https://www.tirasa.net/en/blog/developing-custom-apache2-module
+
+#### Linux SYN handling (when SAVED_SYN is available)
+
+https://blog.cloudflare.com/syn-packet-handling-in-the-wild/
+
+
 
