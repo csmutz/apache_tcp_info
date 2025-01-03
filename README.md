@@ -72,7 +72,7 @@ Possibly block connections based on database of likely compromised devices (ex. 
 
 Possibly collect TCP_INFO at request time (instead of at start of connection) for meaningful collection of other TCP_INFO attributes. This might be better accomplished in a separate module that uses netlink to get TCP_INFO.
 
-Options to collect the whole TCP_INFO struct available with current kernel version. Current implementation just collects standard length struct and doesn't check return length. This is only useful if additional TCP_INFO variables are used.
+More TCP_INFO attributes: Option to collect the whole TCP_INFO struct available with current kernel version. Current implementation just collects standard length struct (defined in netinet/tcp.h). Potentially have runtime option to set max size of struct to collect? Possibly have more attributes from TCP_INFO exposed.
 
 Configuration directive to configure SAVE_SYN on a per Listen basis. RFC on what this should look like.
 
